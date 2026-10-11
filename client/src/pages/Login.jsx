@@ -15,7 +15,7 @@ function validateName(value) {
   return '';
 }
 export default function Login() {
-  const {user,isAuthenticated,requestCode,verifyCode,logout}=useAuth();
+  const {user,isAuthenticated,requestCode,verifyCode,loginTelegram,logout}=useAuth();
   const [name,setName]=useState(''); const [countryIso,setCountryIso]=useState('TJ'); const [localPhone,setLocalPhone]=useState('');
   const [code,setCode]=useState(''); const [sent,setSent]=useState(false); const [busy,setBusy]=useState(false); const [error,setError]=useState('');
   const [touched,setTouched]=useState({name:false,phone:false}); const nav=useNavigate(); const location=useLocation();
@@ -94,7 +94,7 @@ export default function Login() {
         <div className="telegram-divider"><span>или</span></div>
         {telegramBotUsername
           ? <div ref={telegramWidgetRef} className="telegram-widget-slot" aria-label="Войти через Telegram" />
-          : <button type="button" className="telegram-login-button" onClick={() => setError('Вход через Telegram пока не настроен. Администратору нужно указать VITE_TELEGRAM_BOT_USERNAME и TELEGRAM_BOT_TOKEN в настройках окружения.')}><Send size={18}/> Войти через Telegram</button>}
+          : <button type="button" className="telegram-login-button" onClick={() => setError('Кнопка Telegram готова. Реальный вход подключим после создания бота.')}><Send size={18}/> Войти через Telegram</button>}
       </div>
       {sent&&<label className="block"><span className="field-label">Код подтверждения</span><input className="field text-center text-xl tracking-[.5em]" inputMode="numeric" autoComplete="one-time-code" maxLength={4} value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,'').slice(0,4))} required/><p className="mt-2 text-xs text-slate-500">Демо: код выводится в консоль сервера.</p></label>}
       {error&&<p role="alert" className="rounded-xl bg-red-400/10 p-3 text-sm text-red-600">{error}</p>}
