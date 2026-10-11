@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { Smartphone, UserRound, Phone } from 'lucide-react';
+import { Smartphone, UserRound, Phone, LoaderCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import parsePhoneNumber, { getCountryCallingCode } from 'libphonenumber-js/max';
 import metadata from 'libphonenumber-js/metadata.max.json';
@@ -48,7 +48,7 @@ export default function Login() {
   const submit=async e=>{e.preventDefault();setError('');setTouched({name:true,phone:true});
     if(!sent && (nameError||!phoneValid)){setError(nameError||phoneError||'Проверьте введённые данные.');return;}
     setBusy(true);try{if(!sent){await requestCode(fullPhone);setSent(true);}else{await verifyCode(fullPhone,code,normalizedName);nav(location.state?.from?.pathname||'/',{replace:true});}}
-    catch(err){setError(err.response?.data?.message||'Не удалось выполнить вход.');}finally{setBusy(false);}
+    catch(err){setError(err.code==='API_NOT_CONFIGURED'?'Сервис входа ещё не подключён к серверу. Попробуйте позже.':err.code==='API_INVALID_RESPONSE'?'Сервер API настроен неправильно. Обратитесь к администратору.':err.response?.data?.message||'Не удалось выполнить вход. Проверьте подключение и попробуйте снова.');}finally{setBusy(false);}
   };
   return <main className="container-shell grid min-h-[70vh] place-items-center py-12"><section className="auth-card w-full max-w-md rounded-3xl border border-white/10 bg-panel p-6 sm:p-8">
     <span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent text-ink"><Smartphone/></span>
@@ -61,7 +61,7 @@ export default function Login() {
       </div>{touched.phone&&phoneError&&<span className="field-error">{phoneError}</span>}</div>
       {sent&&<label className="block"><span className="field-label">Код подтверждения</span><input className="field text-center text-xl tracking-[.5em]" inputMode="numeric" autoComplete="one-time-code" maxLength={4} value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,'').slice(0,4))} required/><p className="mt-2 text-xs text-slate-500">Демо: код выводится в консоль сервера.</p></label>}
       {error&&<p role="alert" className="rounded-xl bg-red-400/10 p-3 text-sm text-red-600">{error}</p>}
-      <button disabled={busy||(sent&&code.length!==4)} className="btn-primary w-full">{busy?'Подождите...':sent?'Подтвердить и создать профиль':'Получить код подтверждения'}</button>
+      <button disabled={busy||(sent&&code.length!==4)} className="btn-primary w-full">{busy?<><LoaderCircle size={17} className="animate-spin"/> Подождите...</>:sent?'Подтвердить и создать профиль':'Получить код подтверждения'}</button>
       {sent&&<button type="button" onClick={()=>{setSent(false);setCode('');setError('');}} className="w-full text-sm text-slate-400">Изменить данные</button>}
       <p className="text-xs leading-relaxed text-slate-500">Имя: от 2 до 60 символов. Номер проверяется по плану нумерации выбранной страны и ITU-T E.164.</p>
     </form>}
