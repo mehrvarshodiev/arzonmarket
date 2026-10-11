@@ -29,8 +29,9 @@ function Footer() {
 
 export default function App() {
   return (
-    <div className="app-shell min-h-screen bg-ink text-slate-200">
+    <div className="app-shell flex min-h-screen flex-col bg-ink text-slate-200">
       <Navbar />
+      <div className="flex flex-1 flex-col">
       <Suspense fallback={<AppLoader message="Открываем страницу…" />}>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -48,6 +49,7 @@ export default function App() {
           } />
         </Routes>
       </Suspense>
+      </div>
       <Footer />
     </div>
   );
