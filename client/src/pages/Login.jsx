@@ -8,7 +8,7 @@ const countries = [{"iso":"AE","name":"ОАЭ"},{"iso":"AF","name":"Афгани
 const namePattern = /^[\p{L}][\p{L}\p{M} .'-]*$/u;
 function validateName(value) {
   const name = value.trim().replace(/\s+/g, ' ');
-  if (name.length < 2) return 'Введите имя минимум из 2 символов.';
+  if (!name) return 'Введите ваше имя.';
   if (name.length > 60) return 'Имя не должно превышать 60 символов.';
   if (!namePattern.test(name)) return 'Используйте буквы, пробелы, дефис или апостроф.';
   return '';
@@ -61,7 +61,6 @@ export default function Login() {
       {error&&<p role="alert" className="rounded-xl bg-red-400/10 p-3 text-sm text-red-600">{error}</p>}
       <button disabled={busy||(sent&&code.length!==4)} className="btn-primary w-full">{busy?<><LoaderCircle size={17} className="animate-spin"/> Подождите...</>:sent?'Подтвердить и создать профиль':'Получить код подтверждения'}</button>
       {sent&&<button type="button" onClick={()=>{setSent(false);setCode('');setError('');}} className="w-full text-sm text-slate-400">Изменить данные</button>}
-      <p className="text-xs leading-relaxed text-slate-500">Имя: от 2 до 60 символов. Номер проверяется по плану нумерации выбранной страны и ITU-T E.164.</p>
     </form>}
   </section></main>;
 }
