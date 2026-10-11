@@ -1,8 +1,38 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Truck, ShieldCheck, Headphones, MapPin } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Truck, ShieldCheck, Headphones, MapPin } from 'lucide-react';
 import api from '../api';
 import ProductCard from '../components/ProductCard';
+
+const heroSlides = [
+  {
+    eyebrow: 'ТЕХНОЛОГИИ ДЛЯ ТВОЕГО РИТМА',
+    title: 'Твой следующий',
+    highlight: 'уровень.',
+    description: 'Смартфоны и аксессуары, которые помогают больше успевать.',
+    image: 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?auto=format&fit=crop&w=1100&q=85',
+    imageAlt: 'Современный смартфон',
+    imageClass: 'hero-image-phone',
+  },
+  {
+    eyebrow: 'ЗВУК. КОТОРЫЙ ВДОХНОВЛЯЕТ',
+    title: 'Почувствуй',
+    highlight: 'каждый бит.',
+    description: 'Любимая музыка, чистый звук и комфорт — где бы ты ни был.',
+    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1100&q=85',
+    imageAlt: 'Наушники для музыки',
+    imageClass: 'hero-image-audio',
+  },
+  {
+    eyebrow: 'УМНЫЕ РЕШЕНИЯ НА КАЖДЫЙ ДЕНЬ',
+    title: 'Больше можешь.',
+    highlight: 'Меньше сложностей.',
+    description: 'Умные гаджеты и полезные аксессуары для твоего темпа жизни.',
+    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1100&q=85',
+    imageAlt: 'Умные часы и носимые технологии',
+    imageClass: 'hero-image-watch',
+  },
+];
 
 const benefits = [
   { Icon: Truck, title: 'Доставка по городу', description: 'Удобно и быстро' },
@@ -41,6 +71,18 @@ export default function Home() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [apiUnavailable, setApiUnavailable] = useState(false);
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [isHeroPaused, setIsHeroPaused] = useState(false);
+
+  useEffect(() => {
+    if (isHeroPaused) return undefined;
+
+    const timer = window.setInterval(() => {
+      setActiveSlide((current) => (current + 1) % heroSlides.length);
+    }, 5500);
+
+    return () => window.clearInterval(timer);
+  }, [isHeroPaused]);
 
   useEffect(() => {
     let active = true;
@@ -68,19 +110,83 @@ export default function Home() {
 
   return (
     <main className="container-shell space-y-14 pb-10 pt-8 md:pt-12">
-      <section className="hero-panel relative overflow-hidden rounded-[2rem] border border-white/10 px-6 py-12 sm:px-10 md:px-16 md:py-16">
-        <div className="relative z-10 max-w-2xl">
-          <p className="eyebrow">ТЕХНОЛОГИИ НА КАЖДЫЙ ДЕНЬ</p>
-          <h1 className="mt-6 text-4xl font-black leading-tight text-white sm:text-5xl md:text-7xl">
-            Твой следующий<br /><span className="text-accent">уровень.</span>
-          </h1>
-          <p className="mt-5 max-w-md text-sm leading-7 text-slate-300">Смартфоны и аксессуары по выгодным ценам. Выбирай свою технологию.</p>
-          <Link to="/catalog" className="btn-primary mt-8">Смотреть каталог <ArrowRight size={18} /></Link>
+      <section
+        className="hero-panel hero-carousel relative overflow-hidden rounded-[2rem] border border-white/10"
+        aria-roledescription="carousel"
+        aria-label="Подборка технологий ArzonMarket"
+        onMouseEnter={() => setIsHeroPaused(true)}
+        onMouseLeave={() => setIsHeroPaused(false)}
+        onFocusCapture={() => setIsHeroPaused(true)}
+        onBlurCapture={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setIsHeroPaused(false);
+        }}
+      >
+        <div className="hero-carousel-glow" aria-hidden="true" />
+        {heroSlides.map((slide, index) => (
+          <div
+            key={slide.eyebrow}
+            className={`hero-slide ${index === activeSlide ? 'hero-slide-active' : ''}`}
+            aria-hidden={index !== activeSlide}
+          >
+            <div key={activeSlide} className="hero-copy">
+              <p className="eyebrow hero-eyebrow"><span className="hero-eyebrow-dot" />{slide.eyebrow}</p>
+              <h1 key={slide.title} className="hero-title">
+                {slide.title}
+                <br />
+                <span className="text-accent">{slide.highlight}</span>
+              </h1>
+              <p className="hero-description">{slide.description}</p>
+              <Link to="/catalog" tabIndex={index === activeSlide ? 0 : -1} className="btn-primary hero-cta">
+                Выбрать технологию <ArrowRight size={18} />
+              </Link>
+            </div>
+            <div className="hero-orb" aria-hidden="true">
+              <div className="orb-ring" />
+              <img
+                key={slide.image}
+                src={slide.image}
+                alt={slide.imageAlt}
+                className={`hero-phone hero-slide-image ${slide.imageClass}`}
+                fetchPriority={index === 0 ? 'high' : 'auto'}
+                loading={index === 0 ? 'eager' : 'lazy'}
+              />
+            </div>
+          </div>
+        ))}
+
+        <div className="hero-controls">
+          <button
+            type="button"
+            className="hero-arrow"
+            aria-label="Предыдущий слайд"
+            onClick={() => setActiveSlide((current) => (current - 1 + heroSlides.length) % heroSlides.length)}
+          >
+            <ChevronLeft size={21} />
+          </button>
+          <div className="hero-pagination" role="group" aria-label="Выбрать слайд">
+            {heroSlides.map((slide, index) => (
+              <button
+                key={slide.eyebrow}
+                type="button"
+                className={`hero-dot ${index === activeSlide ? 'hero-dot-active' : ''}`}
+                aria-label={`Слайд ${index + 1}: ${slide.eyebrow.toLowerCase()}`}
+                aria-pressed={index === activeSlide}
+                onClick={() => setActiveSlide(index)}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            className="hero-arrow"
+            aria-label="Следующий слайд"
+            onClick={() => setActiveSlide((current) => (current + 1) % heroSlides.length)}
+          >
+            <ChevronRight size={21} />
+          </button>
         </div>
-        <div className="hero-orb" aria-hidden="true">
-          <div className="orb-ring" />
-          <img src="https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?auto=format&fit=crop&w=900&q=85" alt="" className="hero-phone" fetchPriority="high" />
-        </div>
+        <span className="hero-counter" aria-live="polite">
+          {String(activeSlide + 1).padStart(2, '0')} <span>/</span> {String(heroSlides.length).padStart(2, '0')}
+        </span>
       </section>
 
       <section>
