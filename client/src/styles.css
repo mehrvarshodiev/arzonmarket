@@ -222,3 +222,10 @@
 :root[data-theme="light"] .site-footer a[href^="tel:"]:hover .font-semibold{color:#527d1f}
 :root[data-theme="light"] .site-footer a[href*="instagram.com"]:hover .font-semibold{color:#9d174d}
 :root[data-theme="light"] .site-footer a[href*="t.me/"]:hover .font-semibold{color:#075985}
+
+/* Thin page-reading progress bar pinned to the top in both themes. */
+.page-scroll-progress{position:fixed;top:0;left:0;right:0;z-index:60;height:3px;background:rgba(128,146,166,.22);pointer-events:none}
+.page-scroll-progress-fill{height:100%;background:#b7f36b;box-shadow:0 0 9px rgba(183,243,107,.48);transition:width 90ms linear}
+:root[data-theme="light"] .page-scroll-progress{background:rgba(71,84,103,.16)}
+@media(prefers-reduced-motion:reduce){.page-scroll-progress-fill{transition:none}}
+
