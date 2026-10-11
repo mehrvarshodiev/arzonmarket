@@ -54,6 +54,46 @@ async function clearDraft(userId) {
   return supabase(`telegram_product_drafts?telegram_user_id=eq.${userId}`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
 }
 
+async function saveTelegramPhoto(photoSizes) {
+  const token = env("TELEGRAM_BOT_TOKEN");
+  const photo = [...photoSizes].sort((a, b) => (b.file_size || 0) - (a.file_size || 0))[0];
+  if (!photo?.file_id) throw new Error("Telegram photo has no file_id");
+
+  const fileInfo = await telegram("getFile", { file_id: photo.file_id });
+  if (!fileInfo.file_path) throw new Error("Telegram did not return a file path");
+
+  const downloadUrl = `https://api.telegram.org/file/bot${token}/${fileInfo.file_path}`;
+  const downloaded = await fetch(downloadUrl);
+  if (!downloaded.ok) throw new Error("Unable to download photo from Telegram");
+  const contentType = downloaded.headers.get("content-type") || "image/jpeg";
+  if (!contentType.startsWith("image/")) throw new Error("Uploaded Telegram file is not an image");
+  const bytes = await downloaded.arrayBuffer();
+  if (!bytes.byteLength || bytes.byteLength > 8 * 1024 * 1024) {
+    throw new Error("Photo must be smaller than 8 MB");
+  }
+
+  const base = env("SUPABASE_URL");
+  const key = env("SUPABASE_SERVICE_ROLE_KEY");
+  const extByType = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" };
+  const ext = extByType[contentType.split(";")[0].toLowerCase()] || "jpg";
+  const objectPath = `telegram-products/${Date.now()}-${photo.file_unique_id || photo.file_id}.${ext}`;
+  const upload = await fetch(`${base}/storage/v1/object/product-images/${objectPath}`, {
+    method: "POST",
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      "Content-Type": contentType,
+      "x-upsert": "true"
+    },
+    body: bytes
+  });
+  if (!upload.ok) {
+    const detail = await upload.text();
+    throw new Error(`Supabase photo upload failed (${upload.status}): ${detail.slice(0, 200)}`);
+  }
+  return `${base}/storage/v1/object/public/product-images/${objectPath}`;
+}
+
 const STEPS = [
   ["name", "Напиши название товара:"],
   ["brand", "Напиши бренд или производителя:"],
@@ -61,7 +101,7 @@ const STEPS = [
   ["price", "Напиши цену числом:"],
   ["stock", "Напиши количество на складе:"],
   ["description", "Напиши описание товара или отправь — если без описания:"],
-  ["image", "Отправь прямую HTTPS-ссылку на фото товара или напиши — если без фото:"]
+  ["image", "Отправь фото товара прямо из телефона/ноутбука как фото в Telegram. Можно также отправить документ-изображение или HTTPS-ссылку. Если без фото — отправь —:"]
 ];
 
 export default async function handler(req, res) {
@@ -74,7 +114,8 @@ export default async function handler(req, res) {
   try {
     const update = req.body || {};
     const message = update.message;
-    if (!message?.chat?.id || !message?.from?.id || typeof message.text !== "string") return reply(res, { ok: true });
+    if (!message?.chat?.id || !message?.from?.id) return reply(res, { ok: true });
+
     const admins = (env("TELEGRAM_ADMIN_IDS") || "").split(",").map(v => v.trim()).filter(Boolean);
     const userId = String(message.from.id);
     if (!admins.includes(userId)) {
@@ -82,7 +123,7 @@ export default async function handler(req, res) {
       return reply(res, { ok: true });
     }
 
-    const text = message.text.trim();
+    const text = typeof message.text === "string" ? message.text.trim() : "";
     if (text === "/start" || text === "/help") {
       await send(message.chat.id, "ArzonMarket — админ-бот\n/add — добавить товар\n/cancel — отменить добавление\n/products — последние товары");
       return reply(res, { ok: true });
@@ -110,25 +151,55 @@ export default async function handler(req, res) {
       return reply(res, { ok: true });
     }
     const index = STEPS.findIndex(([key]) => key === current.step);
+    if (index < 0) {
+      await clearDraft(userId);
+      await send(message.chat.id, "Состояние добавления сброшено. Запусти /add заново.");
+      return reply(res, { ok: true });
+    }
     const [key] = STEPS[index];
-    const value = text === "—" ? "" : text;
     const draft = { ...(current.draft || {}) };
 
-    if (key === "price" || key === "stock") {
-      const number = Number(value);
-      if (!Number.isFinite(number) || number < 0 || (key === "stock" && !Number.isInteger(number))) {
-        await send(message.chat.id, key === "price" ? "Цена должна быть числом не меньше нуля. Попробуй ещё раз:" : "Количество должно быть целым числом от нуля. Попробуй ещё раз:");
-        return reply(res, { ok: true });
+    if (key === "image") {
+      if (message.photo?.length) {
+        try {
+          draft.images = [await saveTelegramPhoto(message.photo)];
+        } catch (error) {
+          console.error("Telegram product photo error:", error);
+          await send(message.chat.id, "Не удалось сохранить фото. Попробуй отправить изображение как фото (не файл) размером до 8 МБ ещё раз, или отправь HTTPS-ссылку.");
+          return reply(res, { ok: true });
+        }
+      } else if (message.document?.mime_type?.startsWith("image/")) {
+        try {
+          draft.images = [await saveTelegramPhoto([{ file_id: message.document.file_id, file_unique_id: message.document.file_unique_id, file_size: message.document.file_size }])];
+        } catch (error) {
+          console.error("Telegram product image document error:", error);
+          await send(message.chat.id, "Не удалось сохранить изображение. Попробуй отправить его как фото размером до 8 МБ.");
+          return reply(res, { ok: true });
+        }
+      } else {
+        const value = text === "—" ? "" : text;
+        if (value && !/^https:\/\//i.test(value)) {
+          await send(message.chat.id, "Отправь фото из галереи/файлов, прямую HTTPS-ссылку или — если без фото:");
+          return reply(res, { ok: true });
+        }
+        draft.images = value ? [value] : [];
       }
-      draft[key] = number;
-    } else if (key === "image") {
-      if (value && !/^https:\/\//i.test(value)) {
-        await send(message.chat.id, "Нужна прямая HTTPS-ссылка на фото или отправь —:");
-        return reply(res, { ok: true });
-      }
-      draft.images = value ? [value] : [];
     } else {
-      draft[key] = value;
+      if (typeof message.text !== "string") {
+        await send(message.chat.id, "Пожалуйста, отправь ответ текстом.\n" + STEPS[index][1]);
+        return reply(res, { ok: true });
+      }
+      const value = text === "—" ? "" : text;
+      if (key === "price" || key === "stock") {
+        const number = Number(value);
+        if (!Number.isFinite(number) || number < 0 || (key === "stock" && !Number.isInteger(number))) {
+          await send(message.chat.id, key === "price" ? "Цена должна быть числом не меньше нуля. Попробуй ещё раз:" : "Количество должно быть целым числом от нуля. Попробуй ещё раз:");
+          return reply(res, { ok: true });
+        }
+        draft[key] = number;
+      } else {
+        draft[key] = value;
+      }
     }
 
     if (index < STEPS.length - 1) {
@@ -161,7 +232,7 @@ export default async function handler(req, res) {
       })
     });
     await clearDraft(userId);
-    await send(message.chat.id, `✅ Товар добавлен в Supabase!\nНазвание: ${draft.name}\nЦена: ${draft.price}\nКатегория: ${draft.category}\nОстаток: ${draft.stock}\nID: ${rows?.[0]?.id || "сохранён"}`);
+    await send(message.chat.id, `✅ Товар добавлен в Supabase!\nНазвание: ${draft.name}\nЦена: ${draft.price}\nКатегория: ${draft.category}\nОстаток: ${draft.stock}\nФото: ${draft.images?.length ? "сохранено в Supabase Storage" : "без фото"}\nID: ${rows?.[0]?.id || "сохранён"}`);
     return reply(res, { ok: true });
   } catch (error) {
     console.error("Telegram webhook error:", error);
