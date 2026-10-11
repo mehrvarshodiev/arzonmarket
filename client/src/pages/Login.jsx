@@ -90,16 +90,16 @@ export default function Login() {
         <select className="country-select" aria-label="Код страны" value={countryIso} onChange={e=>{setCountryIso(e.target.value);setTouched(t=>({...t,phone:false}));setError('');}} disabled={sent}>{countries.map(c=><option key={c.iso} value={c.iso}>{countryFlag(c.iso)} +{getCountryCallingCode(c.iso)} · {c.iso}</option>)}</select>
         <input className={`field phone-number ${touched.phone&&phoneError?'field-invalid':''}`} type="tel" inputMode="numeric" autoComplete="tel-national" placeholder="Номер телефона" value={localPhone} maxLength={nationalMaxLength} onChange={e=>setLocalPhone(e.target.value.replace(/\D/g,'').slice(0,nationalMaxLength))} onBlur={()=>setTouched(t=>({...t,phone:true}))} required disabled={sent} aria-label="Номер телефона без кода страны"/>
       </div>{touched.phone&&phoneError&&<span className="field-error">{phoneError}</span>}</div>
+      {sent&&<label className="block"><span className="field-label">Код подтверждения</span><input className="field text-center text-xl tracking-[.5em]" inputMode="numeric" autoComplete="one-time-code" maxLength={4} value={code} onChange={e=>setCode(e.target.value.replace(/\\D/g,'').slice(0,4))} required/><p className="mt-2 text-xs text-slate-500">Демо: код выводится в консоль сервера.</p></label>}
+      {error&&<p role="alert" className="rounded-xl bg-red-400/10 p-3 text-sm text-red-600">{error}</p>}
+      <button disabled={busy||(sent&&code.length!==4)} className="btn-primary w-full">{busy?<><LoaderCircle size={17} className="animate-spin"/> Подождите...</>:sent?'Подтвердить и создать профиль':'Получить код подтверждения'}</button>
+      {sent&&<button type="button" onClick={()=>{setSent(false);setCode('');setError('');}} className="w-full text-sm text-slate-400">Изменить данные</button>}
       <div className="telegram-login-section">
         <div className="telegram-divider"><span>или</span></div>
         {telegramBotUsername
           ? <div ref={telegramWidgetRef} className="telegram-widget-slot" aria-label="Войти через Telegram" />
           : <button type="button" className="telegram-login-button" onClick={() => setError('Кнопка Telegram готова. Реальный вход подключим после создания бота.')}><Send size={18}/> Войти через Telegram</button>}
       </div>
-      {sent&&<label className="block"><span className="field-label">Код подтверждения</span><input className="field text-center text-xl tracking-[.5em]" inputMode="numeric" autoComplete="one-time-code" maxLength={4} value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,'').slice(0,4))} required/><p className="mt-2 text-xs text-slate-500">Демо: код выводится в консоль сервера.</p></label>}
-      {error&&<p role="alert" className="rounded-xl bg-red-400/10 p-3 text-sm text-red-600">{error}</p>}
-      <button disabled={busy||(sent&&code.length!==4)} className="btn-primary w-full">{busy?<><LoaderCircle size={17} className="animate-spin"/> Подождите...</>:sent?'Подтвердить и создать профиль':'Получить код подтверждения'}</button>
-      {sent&&<button type="button" onClick={()=>{setSent(false);setCode('');setError('');}} className="w-full text-sm text-slate-400">Изменить данные</button>}
     </form>}
   </section></main>;
 }
