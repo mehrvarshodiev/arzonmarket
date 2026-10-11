@@ -1,5 +1,5 @@
 -- ArzonMarket Supabase schema
--- Run this file in Supabase Dashboard -> SQL Editor.
+-- Safe to run repeatedly in Supabase Dashboard -> SQL Editor.
 create extension if not exists pgcrypto;
 
 create table if not exists public.products (
@@ -18,18 +18,25 @@ create table if not exists public.products (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
 create index if not exists products_category_created_idx on public.products (category, created_at desc);
 create index if not exists products_featured_created_idx on public.products (featured desc, created_at desc);
 create index if not exists products_active_idx on public.products (is_active);
-
 alter table public.products enable row level security;
 drop policy if exists "Public can read active products" on public.products;
-create policy "Public can read active products"
-  on public.products for select to anon, authenticated
-  using (is_active = true);
+create policy "Public can read active products" on public.products for select to anon, authenticated using (is_active = true);
 
--- Telegram wizard state is server-only. Never add anon/authenticated policies here.
+create table if not exists public.users (
+  id uuid primary key default gen_random_uuid(),
+  phone text unique,
+  telegram_id text unique,
+  name text not null default 'Покупатель',
+  role text not null default 'customer' check (role in ('customer','admin')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint users_phone_or_telegram check (phone is not null or telegram_id is not null)
+);
+alter table public.users enable row level security;
+
 create table if not exists public.telegram_product_drafts (
   telegram_user_id bigint primary key,
   step text not null,
@@ -49,8 +56,5 @@ create table if not exists public.orders (
   created_at timestamptz not null default now()
 );
 alter table public.orders enable row level security;
--- Orders intentionally have no public read/write policies; backend must validate and insert orders.
 
-insert into storage.buckets (id, name, public)
-values ('product-images', 'product-images', true)
-on conflict (id) do nothing;
+insert into storage.buckets (id, name, public) values ('product-images', 'product-images', true) on conflict (id) do nothing;
