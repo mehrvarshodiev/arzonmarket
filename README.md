@@ -1,11 +1,12 @@
-# ArzonMarket — MERN e-commerce
+# ArzonMarket
 
-A full-stack online marketplace starter built with MongoDB, Express, React, and Node.js.
+ArzonMarket is a full-stack online marketplace built with React, Vite, Tailwind CSS, Express, and MongoDB.
 
 ## Project structure
 
-- `client/` — React + Vite storefront
-- `server/` — Express REST API, MongoDB models, authentication, products and orders routes
+- `client/` — responsive React storefront and admin UI.
+- `server/` — Express REST API, authentication, product/order routes, and MongoDB models.
+- `docs/ARCHITECTURE.md` — application structure, request flow, and clean-code conventions.
 
 ## Requirements
 
@@ -14,32 +15,42 @@ A full-stack online marketplace starter built with MongoDB, Express, React, and 
 
 ## Setup
 
-### 1. API server
+Install dependencies:
 
 ```bash
-cd server
-cp .env.example .env
-npm install
-npm run dev
+npm run install:all
 ```
 
-Set `MONGODB_URI`, `JWT_SECRET`, and other environment values in `server/.env`.
-
-### 2. Frontend
+Configure environment variables using the examples:
 
 ```bash
-cd client
-cp .env.example .env
-npm install
-npm run dev
+cp server/.env.example server/.env
+cp client/.env.example client/.env
 ```
 
-Set `VITE_API_URL` to the API base URL.
+Set `MONGO_URI` and `JWT_SECRET` in `server/.env`, and set `VITE_API_URL` in `client/.env` to the API base URL. Never commit real credentials or environment files.
 
-## Security
+Run the API and frontend in separate terminals:
 
-Never commit real `.env` files, credentials, or production secrets. The `.env.example` files contain placeholders only.
+```bash
+npm run dev:server
+npm run dev:client
+```
 
-## Note
+Create a production frontend build:
 
-This repository is being populated with the project source. Review configuration and run tests/builds before production deployment.
+```bash
+npm run build:client
+```
+
+## Frontend architecture
+
+- `src/main.jsx` — React root, router, error boundary, and providers.
+- `src/App.jsx` — shared application shell.
+- `src/routes/AppRoutes.jsx` — lazy-loaded routes and route guards.
+- `src/pages/` — route-level screens.
+- `src/components/` — reusable UI and layout components.
+- `src/context/` — shared authentication, cart, and theme state.
+- `src/api.js` — API client configuration.
+
+See [the architecture guide](docs/ARCHITECTURE.md) for details.
