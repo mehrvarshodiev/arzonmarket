@@ -5,6 +5,8 @@ import User from '../models/User.js';
 const router = Router();
 const codes = new Map();
 const normalizePhone = phone => String(phone || '').replace(/[^\d+]/g, '');
+const normalizeName = name => String(name || '').trim().replace(/\s+/g, ' ');
+const validName = name => name.length >= 2 && name.length <= 60 && /\p{L}/u.test(name) && /^[\p{L}\p{M} .'-]+$/u.test(name);
 function issueToken(user) {
   return jwt.sign({ sub: user._id.toString(), role: user.role, name: user.name }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
 }
@@ -28,12 +30,15 @@ router.post('/request-code', (req, res) => {
 });
 router.post('/verify-code', async (req, res, next) => {
   try {
-    const phone = normalizePhone(req.body.phone), code = String(req.body.code || ''), record = codes.get(phone);
+    const phone = normalizePhone(req.body.phone), code = String(req.body.code || ''), name = normalizeName(req.body.name), record = codes.get(phone);
+    if (!/^\+?\d{8,15}$/.test(phone)) return res.status(400).json({ message: 'Введите корректный номер телефона' });
+    if (!validName(name)) return res.status(400).json({ message: 'Имя должно содержать от 2 до 60 символов и состоять из букв, пробелов, дефиса или апострофа.' });
+    if (!/^\d{4}$/.test(code)) return res.status(400).json({ message: 'Введите 4-значный код подтверждения' });
     if (!record || record.expires < Date.now() || record.attempts >= 5) { codes.delete(phone); return res.status(400).json({ message: 'Код истёк или не запрошен. Запросите новый код.' }); }
     record.attempts += 1;
     if (record.code !== code) return res.status(400).json({ message: 'Неверный код' });
     codes.delete(phone);
-    const user = await User.findOneAndUpdate({ phone }, { $setOnInsert: { phone, name: '' } }, { new: true, upsert: true });
+    const user = await User.findOneAndUpdate({ phone }, { $set: { name }, $setOnInsert: { phone } }, { new: true, upsert: true, runValidators: true });
     res.json({ token: issueToken(user), user: { id: user._id, phone: user.phone, name: user.name, role: user.role } });
   } catch (e) { next(e); }
 });
