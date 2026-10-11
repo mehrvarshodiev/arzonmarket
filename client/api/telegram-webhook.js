@@ -1,6 +1,4 @@
-const json = (data, status = 200) => new Response(JSON.stringify(data), {
-  status, headers: { "content-type": "application/json; charset=utf-8" }
-});
+const reply = (res, data, status = 200) => res.status(status).json(data);
 
 const env = (name) => globalThis.process?.env?.[name];
 
@@ -66,50 +64,50 @@ const STEPS = [
   ["image", "Отправь прямую HTTPS-ссылку на фото товара или напиши — если без фото:"]
 ];
 
-export default async function handler(req) {
-  if (req.method !== "POST") return json({ ok: false, message: "Method not allowed" }, 405);
+export default async function handler(req, res) {
+  if (req.method !== "POST") return reply(res, { ok: false, message: "Method not allowed" }, 405);
   const secret = env("TELEGRAM_WEBHOOK_SECRET");
-  if (secret && req.headers.get("x-telegram-bot-api-secret-token") !== secret) {
-    return json({ ok: false, message: "Unauthorized" }, 401);
+  if (secret && req.headers["x-telegram-bot-api-secret-token"] !== secret) {
+    return reply(res, { ok: false, message: "Unauthorized" }, 401);
   }
 
   try {
-    const update = await req.json();
+    const update = req.body || {};
     const message = update.message;
-    if (!message?.chat?.id || !message?.from?.id || typeof message.text !== "string") return json({ ok: true });
+    if (!message?.chat?.id || !message?.from?.id || typeof message.text !== "string") return reply(res, { ok: true });
     const admins = (env("TELEGRAM_ADMIN_IDS") || "").split(",").map(v => v.trim()).filter(Boolean);
     const userId = String(message.from.id);
     if (!admins.includes(userId)) {
       await send(message.chat.id, "⛔ Этот бот доступен только администратору магазина.");
-      return json({ ok: true });
+      return reply(res, { ok: true });
     }
 
     const text = message.text.trim();
     if (text === "/start" || text === "/help") {
       await send(message.chat.id, "ArzonMarket — админ-бот\n/add — добавить товар\n/cancel — отменить добавление\n/products — последние товары");
-      return json({ ok: true });
+      return reply(res, { ok: true });
     }
     if (text === "/cancel") {
       await clearDraft(userId);
       await send(message.chat.id, "Добавление товара отменено.");
-      return json({ ok: true });
+      return reply(res, { ok: true });
     }
     if (text === "/products") {
       const products = await supabase("products?select=name,price,stock,category&order=created_at.desc&limit=10");
       const summary = products.length ? products.map((p, i) => `${i + 1}. ${p.name} — ${p.price} (остаток: ${p.stock})`).join("\n") : "Товаров пока нет.";
       await send(message.chat.id, summary);
-      return json({ ok: true });
+      return reply(res, { ok: true });
     }
     if (text === "/add") {
       await saveDraft(userId, STEPS[0][0], {});
       await send(message.chat.id, "Добавление нового товара.\n" + STEPS[0][1]);
-      return json({ ok: true });
+      return reply(res, { ok: true });
     }
 
     const current = await getDraft(userId);
     if (!current) {
       await send(message.chat.id, "Выбери команду /add, /products или /help.");
-      return json({ ok: true });
+      return reply(res, { ok: true });
     }
     const index = STEPS.findIndex(([key]) => key === current.step);
     const [key] = STEPS[index];
@@ -120,13 +118,13 @@ export default async function handler(req) {
       const number = Number(value);
       if (!Number.isFinite(number) || number < 0 || (key === "stock" && !Number.isInteger(number))) {
         await send(message.chat.id, key === "price" ? "Цена должна быть числом не меньше нуля. Попробуй ещё раз:" : "Количество должно быть целым числом от нуля. Попробуй ещё раз:");
-        return json({ ok: true });
+        return reply(res, { ok: true });
       }
       draft[key] = number;
     } else if (key === "image") {
       if (value && !/^https:\/\//i.test(value)) {
         await send(message.chat.id, "Нужна прямая HTTPS-ссылка на фото или отправь —:");
-        return json({ ok: true });
+        return reply(res, { ok: true });
       }
       draft.images = value ? [value] : [];
     } else {
@@ -137,13 +135,13 @@ export default async function handler(req) {
       const [nextKey, prompt] = STEPS[index + 1];
       await saveDraft(userId, nextKey, draft);
       await send(message.chat.id, prompt);
-      return json({ ok: true });
+      return reply(res, { ok: true });
     }
 
     if (!draft.name || !draft.brand || !draft.category) {
       await clearDraft(userId);
       await send(message.chat.id, "Не хватает названия, бренда или категории. Запусти /add заново.");
-      return json({ ok: true });
+      return reply(res, { ok: true });
     }
     const rows = await supabase("products?select=id", {
       method: "POST",
@@ -164,9 +162,9 @@ export default async function handler(req) {
     });
     await clearDraft(userId);
     await send(message.chat.id, `✅ Товар добавлен в Supabase!\nНазвание: ${draft.name}\nЦена: ${draft.price}\nКатегория: ${draft.category}\nОстаток: ${draft.stock}\nID: ${rows?.[0]?.id || "сохранён"}`);
-    return json({ ok: true });
+    return reply(res, { ok: true });
   } catch (error) {
     console.error("Telegram webhook error:", error);
-    return json({ ok: false, message: "Internal server error" }, 500);
+    return reply(res, { ok: false, message: "Internal server error" }, 500);
   }
 }
