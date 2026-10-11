@@ -92,7 +92,7 @@ export default function Login() {
       </div>{touched.phone&&phoneError&&<span className="field-error">{phoneError}</span>}</div>
       {sent&&<label className="block"><span className="field-label">Код подтверждения</span><input className="field text-center text-xl tracking-[.5em]" inputMode="numeric" autoComplete="one-time-code" maxLength={4} value={code} onChange={e=>setCode(e.target.value.replace(/\\D/g,'').slice(0,4))} required/><p className="mt-2 text-xs text-slate-500">Демо: код выводится в консоль сервера.</p></label>}
       {error&&<p role="alert" className="rounded-xl bg-red-400/10 p-3 text-sm text-red-600">{error}</p>}
-      <button disabled={busy||(sent&&code.length!==4)} className="btn-primary w-full">{busy?<><LoaderCircle size={17} className="animate-spin"/> Подождите...</>:sent?'Подтвердить и создать профиль':'Получить код подтверждения'}</button>
+      <button onClick={() => setError('')} disabled={busy||(sent&&code.length!==4)} className="btn-primary w-full">{busy?<><LoaderCircle size={17} className="animate-spin"/> Подождите...</>:sent?'Подтвердить и создать профиль':'Получить код подтверждения'}</button>
       {sent&&<button type="button" onClick={()=>{setSent(false);setCode('');setError('');}} className="w-full text-sm text-slate-400">Изменить данные</button>}
       <div className="telegram-login-section">
         <div className="telegram-divider"><span>или</span></div>
