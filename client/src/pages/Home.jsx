@@ -3,15 +3,119 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Truck, ShieldCheck, Headphones } from 'lucide-react';
 import api from '../api';
 import ProductCard from '../components/ProductCard';
+
+const benefits = [
+  { Icon: Truck, title: 'Доставка по городу', description: 'Удобно и быстро' },
+  { Icon: ShieldCheck, title: 'Проверенная техника', description: 'Внимание к качеству' },
+  { Icon: Headphones, title: 'Помощь с выбором', description: 'Поддержка покупателей' },
+];
+
+function ProductSkeleton() {
+  return (
+    <div className="product-skeleton" aria-hidden="true">
+      <div className="skeleton product-skeleton-image" />
+      <div className="skeleton product-skeleton-line" />
+      <div className="skeleton product-skeleton-line product-skeleton-line-short" />
+      <div className="skeleton product-skeleton-price" />
+    </div>
+  );
+}
+
+function ProductGrid({ products, loading }) {
+  if (loading) {
+    return <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <ProductSkeleton key={index} />)}</div>;
+  }
+
+  if (!products.length) {
+    return <div className="empty-state">Товары временно недоступны. Попробуйте обновить страницу немного позже.</div>;
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      {products.map((product) => <ProductCard key={product._id} product={product} />)}
+    </div>
+  );
+}
+
 export default function Home() {
- const [products,setProducts]=useState([]); const [error,setError]=useState('');
- useEffect(()=>{api.get('/products?sort=newest').then(r=>setProducts(r.data)).catch(()=>setError('Каталог пока недоступен. Проверьте подключение API.'));},[]);
- const featured=products.filter(p=>p.featured).slice(0,4);
- return <main className="container-shell space-y-14 pb-10 pt-8 md:pt-12">
-  <section className="hero-panel relative overflow-hidden rounded-[2rem] border border-white/10 px-6 py-12 sm:px-10 md:px-16 md:py-16"><div className="relative z-10 max-w-2xl"><p className="eyebrow">ТЕХНОЛОГИИ НА КАЖДЫЙ ДЕНЬ</p><h1 className="mt-6 text-4xl font-black leading-tight text-white sm:text-5xl md:text-7xl">Твой следующий<br/><span className="text-accent">уровень.</span></h1><p className="mt-5 max-w-md text-sm leading-7 text-slate-300">Смартфоны и аксессуары по выгодным ценам. Выбирай свою технологию.</p><Link to="/catalog" className="btn-primary mt-8">Смотреть каталог <ArrowRight size={18}/></Link></div><div className="hero-orb"><div className="orb-ring"/><img src="https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?auto=format&fit=crop&w=900&q=85" alt="Смартфон" className="hero-phone"/></div></section>
-  <section><div className="section-heading"><div><p className="eyebrow">ВЫБИРАЙ СВОЁ</p><h2 className="section-title">Категории</h2></div></div><div className="grid gap-4 sm:grid-cols-2"><Link to="/catalog?type=Телефоны" className="category-tile"><div><p className="text-xs font-bold text-accent">01 / MOBILE</p><h3 className="mt-3 text-2xl font-extrabold text-white">Смартфоны</h3><p className="mt-2 text-sm text-slate-400">Мощность в твоих руках</p></div><img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=600&q=80" alt="Смартфон"/></Link><Link to="/catalog?type=Аксессуары" className="category-tile"><div><p className="text-xs font-bold text-accent">02 / GEAR</p><h3 className="mt-3 text-2xl font-extrabold text-white">Аксессуары</h3><p className="mt-2 text-sm text-slate-400">Детали решают всё</p></div><img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80" alt="Наушники"/></Link></div></section>
-  {error&&<p className="empty-state">{error}</p>}
-  <section><div className="section-heading"><div><p className="eyebrow">ВЫБОР ПОКУПАТЕЛЕЙ</p><h2 className="section-title">Популярные товары</h2></div><Link to="/catalog" className="text-sm font-bold text-accent">Весь каталог →</Link></div>{(featured.length?featured:products.slice(0,8)).length?<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">{(featured.length?featured:products.slice(0,8)).map(p=><ProductCard key={p._id} product={p}/>)}</div>:<div className="empty-state">Товаров пока нет. Они появятся после добавления в базу данных.</div>}</section>
-  <section className="grid gap-3 rounded-3xl border border-white/5 bg-panel p-5 sm:grid-cols-3">{[{I:Truck,t:'Доставка по городу',d:'Удобно и быстро'},{I:ShieldCheck,t:'Проверенная техника',d:'Внимание к качеству'},{I:Headphones,t:'Помощь с выбором',d:'Поддержка покупателей'}].map(({I,t,d})=><div key={t} className="flex gap-3 p-3"><I className="text-accent"/><div><h3 className="font-bold text-white">{t}</h3><p className="text-sm text-slate-400">{d}</p></div></div>)}</section>
- </main>;
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [apiUnavailable, setApiUnavailable] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    api.get('/products?sort=newest')
+      .then(({ data }) => {
+        if (!active) return;
+        if (!Array.isArray(data)) throw new Error('API_INVALID_RESPONSE');
+        setProducts(data);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setApiUnavailable(true);
+        console.error('Unable to load products:', error);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => { active = false; };
+  }, []);
+
+  const featuredProducts = products.filter((product) => product.featured).slice(0, 4);
+  const visibleProducts = featuredProducts.length ? featuredProducts : products.slice(0, 8);
+
+  return (
+    <main className="container-shell space-y-14 pb-10 pt-8 md:pt-12">
+      <section className="hero-panel relative overflow-hidden rounded-[2rem] border border-white/10 px-6 py-12 sm:px-10 md:px-16 md:py-16">
+        <div className="relative z-10 max-w-2xl">
+          <p className="eyebrow">ТЕХНОЛОГИИ НА КАЖДЫЙ ДЕНЬ</p>
+          <h1 className="mt-6 text-4xl font-black leading-tight text-white sm:text-5xl md:text-7xl">
+            Твой следующий<br /><span className="text-accent">уровень.</span>
+          </h1>
+          <p className="mt-5 max-w-md text-sm leading-7 text-slate-300">Смартфоны и аксессуары по выгодным ценам. Выбирай свою технологию.</p>
+          <Link to="/catalog" className="btn-primary mt-8">Смотреть каталог <ArrowRight size={18} /></Link>
+        </div>
+        <div className="hero-orb" aria-hidden="true">
+          <div className="orb-ring" />
+          <img src="https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?auto=format&fit=crop&w=900&q=85" alt="" className="hero-phone" fetchPriority="high" />
+        </div>
+      </section>
+
+      <section>
+        <div className="section-heading">
+          <div><p className="eyebrow">ВЫБИРАЙ СВОЁ</p><h2 className="section-title">Категории</h2></div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Link to="/catalog?type=Телефоны" className="category-tile">
+            <div><p className="text-xs font-bold text-accent">01 / MOBILE</p><h3 className="mt-3 text-2xl font-extrabold text-white">Смартфоны</h3><p className="mt-2 text-sm text-slate-400">Мощность в твоих руках</p></div>
+            <img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=600&q=80" alt="Смартфон" loading="lazy" />
+          </Link>
+          <Link to="/catalog?type=Аксессуары" className="category-tile">
+            <div><p className="text-xs font-bold text-accent">02 / GEAR</p><h3 className="mt-3 text-2xl font-extrabold text-white">Аксессуары</h3><p className="mt-2 text-sm text-slate-400">Детали решают всё</p></div>
+            <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80" alt="Аксессуары" loading="lazy" />
+          </Link>
+        </div>
+      </section>
+
+      <section>
+        <div className="section-heading">
+          <div><p className="eyebrow">ВЫБИРАЙ СВОЁ</p><h2 className="section-title">Популярные товары</h2></div>
+          <Link to="/catalog" className="text-sm font-bold text-accent">Весь каталог →</Link>
+        </div>
+        {apiUnavailable && <p className="mb-4 text-sm text-slate-400" role="status">Каталог сейчас не отвечает. Витрина останется доступной, пока сервис восстанавливается.</p>}
+        <ProductGrid products={visibleProducts} loading={loading} />
+      </section>
+
+      <section className="grid gap-3 rounded-3xl border border-white/5 bg-panel p-5 sm:grid-cols-3">
+        {benefits.map(({ Icon, title, description }) => (
+          <div key={title} className="flex gap-3 p-3">
+            <Icon className="text-accent" />
+            <div><h3 className="font-bold text-white">{title}</h3><p className="text-sm text-slate-400">{description}</p></div>
+          </div>
+        ))}
+      </section>
+    </main>
+  );
 }
