@@ -22,8 +22,15 @@ export default function Login() {
   const country=countries.find(c=>c.iso===countryIso)||countries[0];
   const normalizedName=name.trim().replace(/\s+/g,' ');
   const callingCode = getCountryCallingCode(countryIso);
-  const possibleLengths = (metadata.countries[countryIso]?.[3] || []).flat(Infinity).filter(n => Number.isInteger(n) && n > 0);
-  const nationalMaxLength = possibleLengths.length ? Math.max(...possibleLengths) : Math.max(1, 15 - callingCode.length);
+  // libphonenumber-js metadata stores possible national-number lengths at index 2;
+  // index 3 is the national dialing prefix (for example, 8 in Russia).
+  const countryMetadata = metadata.countries[countryIso];
+  const possibleLengths = (countryMetadata?.[2] || []).flat(Infinity).filter(n => Number.isInteger(n) && n > 0);
+  const nationalPrefix = typeof countryMetadata?.[3] === 'string' ? countryMetadata[3] : '';
+  const nationalMaxLength = Math.min(
+    possibleLengths.length ? Math.max(...possibleLengths) + nationalPrefix.length : 15 - callingCode.length,
+    15 - callingCode.length
+  );
   const parsedPhone = localPhone.trim()
     ? parsePhoneNumber(localPhone, { defaultCountry: countryIso, extract: false })
     : undefined;
@@ -51,7 +58,7 @@ export default function Login() {
       <div><span className="field-label"><Phone size={14}/> Номер телефона</span><div className="phone-entry mt-2">
         <select className="country-select" aria-label="Код страны" value={countryIso} onChange={e=>{setCountryIso(e.target.value);setTouched(t=>({...t,phone:false}));setError('');}} disabled={sent}>{countries.map(c=><option key={c.iso} value={c.iso}>{c.iso} +{getCountryCallingCode(c.iso)}</option>)}</select>
         <input className={`field phone-number ${touched.phone&&phoneError?'field-invalid':''}`} type="tel" inputMode="numeric" autoComplete="tel-national" placeholder="Номер телефона" value={localPhone} maxLength={nationalMaxLength} onChange={e=>setLocalPhone(e.target.value.replace(/\D/g,'').slice(0,nationalMaxLength))} onBlur={()=>setTouched(t=>({...t,phone:true}))} required disabled={sent} aria-label="Номер телефона без кода страны"/>
-      </div><p className="mt-2 text-xs text-slate-500">Введите номер без кода страны. Длина зависит от страны (ITU-T E.164: до 15 цифр).</p>{touched.phone&&phoneError&&<span className="field-error">{phoneError}</span>}</div>
+      </div>{touched.phone&&phoneError&&<span className="field-error">{phoneError}</span>}</div>
       {sent&&<label className="block"><span className="field-label">Код подтверждения</span><input className="field text-center text-xl tracking-[.5em]" inputMode="numeric" autoComplete="one-time-code" maxLength={4} value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,'').slice(0,4))} required/><p className="mt-2 text-xs text-slate-500">Демо: код выводится в консоль сервера.</p></label>}
       {error&&<p role="alert" className="rounded-xl bg-red-400/10 p-3 text-sm text-red-600">{error}</p>}
       <button disabled={busy||(sent&&code.length!==4)} className="btn-primary w-full">{busy?'Подождите...':sent?'Подтвердить и создать профиль':'Получить код подтверждения'}</button>
