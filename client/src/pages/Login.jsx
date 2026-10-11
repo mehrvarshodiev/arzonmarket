@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { Smartphone, UserRound, Phone, LoaderCircle } from 'lucide-react';
+import { Smartphone, UserRound, Phone, LoaderCircle, Send } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import parsePhoneNumber, { getCountryCallingCode } from 'libphonenumber-js/max';
 
 const countries = [{"iso":"AE","name":"ОАЭ"},{"iso":"AF","name":"Афганистан"},{"iso":"AM","name":"Армения"},{"iso":"AU","name":"Австралия"},{"iso":"AZ","name":"Азербайджан"},{"iso":"BD","name":"Бангладеш"},{"iso":"BR","name":"Бразилия"},{"iso":"BY","name":"Беларусь"},{"iso":"CA","name":"Канада"},{"iso":"CH","name":"Швейцария"},{"iso":"CN","name":"Китай"},{"iso":"CZ","name":"Чехия"},{"iso":"DE","name":"Германия"},{"iso":"EG","name":"Египет"},{"iso":"ES","name":"Испания"},{"iso":"FR","name":"Франция"},{"iso":"GB","name":"Великобритания"},{"iso":"GE","name":"Грузия"},{"iso":"ID","name":"Индонезия"},{"iso":"IN","name":"Индия"},{"iso":"IR","name":"Иран"},{"iso":"IT","name":"Италия"},{"iso":"JP","name":"Япония"},{"iso":"KG","name":"Кыргызстан"},{"iso":"KR","name":"Южная Корея"},{"iso":"KZ","name":"Казахстан"},{"iso":"MY","name":"Малайзия"},{"iso":"NG","name":"Нигерия"},{"iso":"NL","name":"Нидерланды"},{"iso":"NO","name":"Норвегия"},{"iso":"PK","name":"Пакистан"},{"iso":"PL","name":"Польша"},{"iso":"RO","name":"Румыния"},{"iso":"RU","name":"Россия"},{"iso":"SA","name":"Саудовская Аравия"},{"iso":"SE","name":"Швеция"},{"iso":"TH","name":"Таиланд"},{"iso":"TJ","name":"Таджикистан"},{"iso":"TR","name":"Турция"},{"iso":"UA","name":"Украина"},{"iso":"US","name":"США"},{"iso":"UZ","name":"Узбекистан"},{"iso":"VN","name":"Вьетнам"},{"iso":"ZA","name":"ЮАР"}];
 const namePattern = /^[\p{L}][\p{L}\p{M} .'-]*$/u;
+const countryFlag = iso => String.fromCodePoint(...Array.from(iso.toUpperCase(), char => char.charCodeAt(0) + 127397));
 function validateName(value) {
   const name = value.trim().replace(/\s+/g, ' ');
   if (!name) return 'Введите ваше имя.';
@@ -18,6 +19,38 @@ export default function Login() {
   const [name,setName]=useState(''); const [countryIso,setCountryIso]=useState('TJ'); const [localPhone,setLocalPhone]=useState('');
   const [code,setCode]=useState(''); const [sent,setSent]=useState(false); const [busy,setBusy]=useState(false); const [error,setError]=useState('');
   const [touched,setTouched]=useState({name:false,phone:false}); const nav=useNavigate(); const location=useLocation();
+  const telegramWidgetRef = useRef(null);
+  const telegramBotUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
+
+  useEffect(() => {
+    if (!telegramBotUsername || isAuthenticated || !telegramWidgetRef.current) return;
+    const container = telegramWidgetRef.current;
+    const script = document.createElement('script');
+    script.src = 'https://telegram.org/js/telegram-widget.js?22';
+    script.async = true;
+    script.dataset.telegramLogin = telegramBotUsername;
+    script.dataset.size = 'large';
+    script.dataset.radius = '12';
+    script.dataset.userpic = 'false';
+    script.dataset.onauth = 'onTelegramAuth(user)';
+    window.onTelegramAuth = async telegramUser => {
+      setBusy(true);
+      setError('');
+      try {
+        await loginTelegram(telegramUser);
+        nav(location.state?.from?.pathname || '/', { replace: true });
+      } catch (err) {
+        setError(err.response?.data?.message || 'Не удалось войти через Telegram. Попробуйте ещё раз.');
+      } finally {
+        setBusy(false);
+      }
+    };
+    container.appendChild(script);
+    return () => {
+      script.remove();
+      delete window.onTelegramAuth;
+    };
+  }, [telegramBotUsername, isAuthenticated, loginTelegram, nav, location.state]);
   const country=countries.find(c=>c.iso===countryIso)||countries[0];
   const normalizedName=name.trim().replace(/\s+/g,' ');
   const callingCode = getCountryCallingCode(countryIso);
@@ -54,9 +87,15 @@ export default function Login() {
     {isAuthenticated?<><p className="mt-3 text-slate-400">{user?.name||user?.phone}</p>{user?.role==='admin'&&<Link to="/admin" className="btn-primary mt-5 w-full">Открыть админ-панель</Link>}<button onClick={()=>{logout();setSent(false);}} className="btn-secondary mt-4 w-full">Выйти</button></>:<form onSubmit={submit} className="mt-6 space-y-4" noValidate>
       <label className="block"><span className="field-label"><UserRound size={14}/> Ваше имя</span><input className={`field ${touched.name&&nameError?'field-invalid':''}`} type="text" autoComplete="name" placeholder="Введите ваше имя" value={name} onChange={e=>setName(e.target.value.slice(0,80))} onBlur={()=>setTouched(t=>({...t,name:true}))} required maxLength={80} disabled={sent}/>{touched.name&&nameError&&<span className="field-error">{nameError}</span>}</label>
       <div><span className="field-label"><Phone size={14}/> Номер телефона</span><div className="phone-entry mt-2">
-        <select className="country-select" aria-label="Код страны" value={countryIso} onChange={e=>{setCountryIso(e.target.value);setTouched(t=>({...t,phone:false}));setError('');}} disabled={sent}>{countries.map(c=><option key={c.iso} value={c.iso}>{c.iso} +{getCountryCallingCode(c.iso)}</option>)}</select>
+        <select className="country-select" aria-label="Код страны" value={countryIso} onChange={e=>{setCountryIso(e.target.value);setTouched(t=>({...t,phone:false}));setError('');}} disabled={sent}>{countries.map(c=><option key={c.iso} value={c.iso}>{countryFlag(c.iso)} {c.name} (+{getCountryCallingCode(c.iso)})</option>)}</select>
         <input className={`field phone-number ${touched.phone&&phoneError?'field-invalid':''}`} type="tel" inputMode="numeric" autoComplete="tel-national" placeholder="Номер телефона" value={localPhone} maxLength={nationalMaxLength} onChange={e=>setLocalPhone(e.target.value.replace(/\D/g,'').slice(0,nationalMaxLength))} onBlur={()=>setTouched(t=>({...t,phone:true}))} required disabled={sent} aria-label="Номер телефона без кода страны"/>
       </div>{touched.phone&&phoneError&&<span className="field-error">{phoneError}</span>}</div>
+      <div className="telegram-login-section">
+        <div className="telegram-divider"><span>или</span></div>
+        {telegramBotUsername
+          ? <div ref={telegramWidgetRef} className="telegram-widget-slot" aria-label="Войти через Telegram" />
+          : <button type="button" className="telegram-login-button" onClick={() => setError('Вход через Telegram пока не настроен. Администратору нужно указать VITE_TELEGRAM_BOT_USERNAME и TELEGRAM_BOT_TOKEN в настройках окружения.')}><Send size={18}/> Войти через Telegram</button>}
+      </div>
       {sent&&<label className="block"><span className="field-label">Код подтверждения</span><input className="field text-center text-xl tracking-[.5em]" inputMode="numeric" autoComplete="one-time-code" maxLength={4} value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,'').slice(0,4))} required/><p className="mt-2 text-xs text-slate-500">Демо: код выводится в консоль сервера.</p></label>}
       {error&&<p role="alert" className="rounded-xl bg-red-400/10 p-3 text-sm text-red-600">{error}</p>}
       <button disabled={busy||(sent&&code.length!==4)} className="btn-primary w-full">{busy?<><LoaderCircle size={17} className="animate-spin"/> Подождите...</>:sent?'Подтвердить и создать профиль':'Получить код подтверждения'}</button>
