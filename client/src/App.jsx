@@ -33,7 +33,7 @@ function Footer() {
           <div>
             <h2 className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Связаться с нами</h2>
             <a
-              href="tel:+9262770808"
+              href="tel:+79262770808"
               className="group mt-4 inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 transition hover:border-accent/40 hover:bg-accent/5"
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
@@ -41,7 +41,7 @@ function Footer() {
               </span>
               <span>
                 <span className="block text-xs text-slate-500">Телефон магазина</span>
-                <span className="mt-1 block font-semibold text-white group-hover:text-accent">+9262770808</span>
+                <span className="mt-1 block font-semibold text-white group-hover:text-accent">+79262770808</span>
               </span>
             </a>
           </div>
