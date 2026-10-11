@@ -13,7 +13,10 @@ const links = [
 ];
 
 function Brand({ compact = false }) {
-  return <Link to="/" aria-label="ArzonMarket — на главную" className="brand-mark flex shrink-0 items-center gap-2.5 font-black tracking-tight">
+  const handleClick = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  return <Link to="/" onClick={handleClick} aria-label="ArzonMarket — на главную" className="brand-mark flex shrink-0 items-center gap-2.5 font-black tracking-tight">
     <span className="brand-icon grid h-10 w-10 place-items-center rounded-2xl bg-accent text-ink shadow-glow"><Smartphone size={22}/></span>
     <span className={compact ? 'text-lg' : 'text-xl'}>arzon<span className="text-accent">market</span></span>
   </Link>;
@@ -34,7 +37,23 @@ export default function Navbar() {
   const { count } = useCart();
   const { isAdmin } = useAuth();
   const [headerHidden, setHeaderHidden] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const previousScrollY = useRef(0);
+
+  useEffect(() => {
+    const updateProgress = () => {
+      const scrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = scrollableHeight > 0 ? (window.scrollY / scrollableHeight) * 100 : 0;
+      setScrollProgress(Math.min(100, Math.max(0, progress)));
+    };
+    updateProgress();
+    window.addEventListener('scroll', updateProgress, { passive: true });
+    window.addEventListener('resize', updateProgress);
+    return () => {
+      window.removeEventListener('scroll', updateProgress);
+      window.removeEventListener('resize', updateProgress);
+    };
+  }, []);
 
   useEffect(() => {
     previousScrollY.current = window.scrollY;
@@ -60,6 +79,9 @@ export default function Navbar() {
   }, []);
 
   return <>
+    <div className="page-scroll-progress" aria-hidden="true">
+      <div className="page-scroll-progress-fill" style={{ width: scrollProgress + '%' }} />
+    </div>
     <header className={`site-header sticky top-0 z-40 border-b backdrop-blur-xl ${headerHidden ? "site-header-hidden" : "site-header-visible"}`} data-header-hidden={headerHidden}>
       <div className="container-shell flex h-[68px] items-center justify-between gap-3 md:h-[76px]">
         <Brand compact />
