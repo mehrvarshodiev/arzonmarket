@@ -64,7 +64,7 @@ export default function Navbar() {
       <div className="container-shell flex h-[68px] items-center justify-between gap-3 md:h-[76px]">
         <Brand compact />
         <nav className="desktop-nav hidden items-center gap-1 md:flex" aria-label="Основная навигация">
-          {links.map(l => <NavLink key={l.to} to={l.to} end={l.to === '/'} className={({isActive}) => `rounded-xl px-3 py-2 text-sm font-semibold transition lg:px-4 ${isActive ? 'nav-link-active' : 'nav-link'}`}>{l.label}</NavLink>)}
+          {links.filter(l => l.to !== '/cart').map(l => <NavLink key={l.to} to={l.to} end={l.to === '/'} className={({isActive}) => `rounded-xl px-3 py-2 text-sm font-semibold transition lg:px-4 ${isActive ? 'nav-link-active' : 'nav-link'}`}>{l.label}</NavLink>)}
         </nav>
         <div className="header-actions flex items-center gap-2">
           <ThemeSwitcher />
