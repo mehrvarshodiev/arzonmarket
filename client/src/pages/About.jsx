@@ -7,6 +7,7 @@ import {
   Gift,
   Headphones,
   Instagram,
+  Send,
   PackageCheck,
   ShieldCheck,
   Smartphone,
@@ -153,7 +154,7 @@ export default function About() {
         <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-400">Уже знаешь, что нужно? Загляни в каталог. Сравниваешь модели и не уверен? Напиши нам в Instagram — поможем разобраться.</p>
         <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
           <Link to="/catalog" className="btn-primary">Перейти в каталог <ArrowRight size={18} /></Link>
-          <a href="https://www.instagram.com/arzon_market_ru/" target="_blank" rel="noreferrer" className="btn-secondary"><Instagram size={17} /> Задать вопрос</a>
+          <a href="https://t.me/ARZON_MARKET_RU" target="_blank" rel="noreferrer" className="btn-secondary"><Send size={17} /> Написать в Telegram</a>
         </div>
       </section>
     </main>
