@@ -3,7 +3,6 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Smartphone, UserRound, Phone, LoaderCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import parsePhoneNumber, { getCountryCallingCode } from 'libphonenumber-js/max';
-import metadata from 'libphonenumber-js/metadata.max.json';
 
 const countries = [{"iso":"AE","name":"ОАЭ"},{"iso":"AF","name":"Афганистан"},{"iso":"AM","name":"Армения"},{"iso":"AU","name":"Австралия"},{"iso":"AZ","name":"Азербайджан"},{"iso":"BD","name":"Бангладеш"},{"iso":"BR","name":"Бразилия"},{"iso":"BY","name":"Беларусь"},{"iso":"CA","name":"Канада"},{"iso":"CH","name":"Швейцария"},{"iso":"CN","name":"Китай"},{"iso":"CZ","name":"Чехия"},{"iso":"DE","name":"Германия"},{"iso":"EG","name":"Египет"},{"iso":"ES","name":"Испания"},{"iso":"FR","name":"Франция"},{"iso":"GB","name":"Великобритания"},{"iso":"GE","name":"Грузия"},{"iso":"ID","name":"Индонезия"},{"iso":"IN","name":"Индия"},{"iso":"IR","name":"Иран"},{"iso":"IT","name":"Италия"},{"iso":"JP","name":"Япония"},{"iso":"KG","name":"Кыргызстан"},{"iso":"KR","name":"Южная Корея"},{"iso":"KZ","name":"Казахстан"},{"iso":"MY","name":"Малайзия"},{"iso":"NG","name":"Нигерия"},{"iso":"NL","name":"Нидерланды"},{"iso":"NO","name":"Норвегия"},{"iso":"PK","name":"Пакистан"},{"iso":"PL","name":"Польша"},{"iso":"RO","name":"Румыния"},{"iso":"RU","name":"Россия"},{"iso":"SA","name":"Саудовская Аравия"},{"iso":"SE","name":"Швеция"},{"iso":"TH","name":"Таиланд"},{"iso":"TJ","name":"Таджикистан"},{"iso":"TR","name":"Турция"},{"iso":"UA","name":"Украина"},{"iso":"US","name":"США"},{"iso":"UZ","name":"Узбекистан"},{"iso":"VN","name":"Вьетнам"},{"iso":"ZA","name":"ЮАР"}];
 const namePattern = /^[\p{L}][\p{L}\p{M} .'-]*$/u;
@@ -22,18 +21,17 @@ export default function Login() {
   const country=countries.find(c=>c.iso===countryIso)||countries[0];
   const normalizedName=name.trim().replace(/\s+/g,' ');
   const callingCode = getCountryCallingCode(countryIso);
-  // libphonenumber-js metadata stores possible national-number lengths at index 2;
-  // index 3 is the national dialing prefix (for example, 8 in Russia).
-  const countryMetadata = metadata.countries[countryIso];
-  const possibleLengths = (countryMetadata?.[2] || []).flat(Infinity).filter(n => Number.isInteger(n) && n > 0);
-  const nationalPrefix = typeof countryMetadata?.[3] === 'string' ? countryMetadata[3] : '';
-  const nationalMaxLength = Math.min(
-    possibleLengths.length ? Math.max(...possibleLengths) + nationalPrefix.length : 15 - callingCode.length,
-    15 - callingCode.length
-  );
-  const parsedPhone = localPhone.trim()
-    ? parsePhoneNumber(localPhone, { defaultCountry: countryIso, extract: false })
-    : undefined;
+  // Keep the input independent from internal metadata array shapes; E.164 allows
+  // at most 15 digits including the country calling code.
+  const nationalMaxLength = Math.max(4, 15 - callingCode.length);
+  let parsedPhone;
+  try {
+    parsedPhone = localPhone.trim()
+      ? parsePhoneNumber(localPhone, { defaultCountry: countryIso, extract: false })
+      : undefined;
+  } catch {
+    parsedPhone = undefined;
+  }
   const fullPhone = parsedPhone?.number || '';
   const nameError=validateName(name);
   // Use libphonenumber-js/max metadata for numbering-plan validation; E.164 caps the full number at 15 digits.
