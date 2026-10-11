@@ -105,3 +105,21 @@
 :root[data-theme="light"] .text-slate-400{color:#667085}
 :root[data-theme="light"] .text-slate-500{color:#7a8597}
 :root[data-theme="light"] .text-slate-600{color:#667085}
+
+
+/* Phone country picker and registration field validation */
+.field-label{display:flex;align-items:center;gap:7px;margin-bottom:8px;font-size:13px;font-weight:650;color:#aab4c4}
+.phone-entry{display:grid;grid-template-columns:minmax(132px,.95fr) minmax(0,1fr);gap:8px}
+.country-select{width:100%;min-width:0;min-height:48px;padding:0 10px;border:1px solid rgba(255,255,255,.12);border-radius:13px;background:#121720;color:#e7edf5;font-size:13px;outline:none}
+.country-select:focus,.field:focus{border-color:#b7f36b;box-shadow:0 0 0 3px rgba(183,243,107,.12)}
+.country-select option{background:#121720;color:#e7edf5}
+.phone-number{min-width:0;margin-top:0}
+.field-invalid{border-color:#ef7777!important}
+.field-error{display:block;margin-top:7px;color:#f08080;font-size:12px;line-height:1.45}
+:root[data-theme="light"] .auth-card{background:#fff;border-color:#e1e7ef}
+:root[data-theme="light"] .auth-card h1{color:#182230}
+:root[data-theme="light"] .country-select{background:#fff;border-color:#dce3eb;color:#182230}
+:root[data-theme="light"] .country-select option{background:#fff;color:#182230}
+:root[data-theme="light"] .field-label{color:#586477}
+:root[data-theme="light"] .field-error{color:#c24141}
+@media(max-width:380px){.phone-entry{grid-template-columns:minmax(115px,.9fr) minmax(0,1fr);gap:6px}.country-select{padding-inline:6px;font-size:11px}}
