@@ -149,3 +149,10 @@
 :root[data-theme="light"] .error-panel{background:#fff;border-color:#e0e6ee}
 :root[data-theme="light"] .error-panel p{color:#667085}
 @media(prefers-reduced-motion:reduce){.loader-spinner{animation:none}}
+
+
+/* Direction-aware sticky header: hide on scroll down, reveal on scroll up. */
+.site-header{transform:translateY(0);transition:transform 320ms cubic-bezier(.22,.75,.25,1),background-color 220ms ease,box-shadow 220ms ease;will-change:transform}
+.site-header-hidden{transform:translateY(calc(-100% - 2px));pointer-events:none}
+.site-header-visible{transform:translateY(0)}
+@media(prefers-reduced-motion:reduce){.site-header{transition:none;will-change:auto}}
