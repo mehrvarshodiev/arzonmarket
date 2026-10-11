@@ -180,3 +180,36 @@
 :root[data-theme="light"] .phone-entry .phone-number{border-left-color:#e2e8f0!important}
 :root[data-theme="light"] .telegram-divider:before,:root[data-theme="light"] .telegram-divider:after{background:#e1e7ef}
 @media(max-width:380px){.phone-entry .country-select{flex-basis:100px;width:100px;padding-inline:5px;font-size:11px}.phone-entry .phone-number{padding-inline:9px}}
+
+
+/* About page — shares ArzonMarket's accent, surfaces and responsive rhythm */
+.about-hero{background:radial-gradient(ellipse at 85% 45%,rgba(183,243,107,.15),transparent 32%),linear-gradient(115deg,#151b25 0%,#0e121a 60%,#121b17 100%);min-height:420px}
+.about-hero-art{position:absolute;right:4%;top:50%;width:min(28%,300px);aspect-ratio:1;transform:translateY(-50%);display:grid;place-items:center}
+.about-hero-glow{position:absolute;inset:0;border-radius:50%;background:rgba(183,243,107,.08);filter:blur(28px)}
+.about-phone-card{position:relative;width:44%;height:72%;border:2px solid rgba(255,255,255,.48);border-radius:28px;background:linear-gradient(145deg,#333c48,#11161e 60%,#242e39);box-shadow:0 28px 65px rgba(0,0,0,.45),inset 0 0 0 5px rgba(0,0,0,.25);transform:rotate(10deg)}
+.about-phone-card:before{content:"";position:absolute;inset:8px;border:1px solid rgba(255,255,255,.08);border-radius:20px}
+.about-phone-camera{position:absolute;top:12%;left:12%;width:17%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 35% 30%,#91b9db 0 10%,#263b51 24%,#05070b 65%);box-shadow:0 0 0 4px #171d26,0 0 0 5px #53606c}
+.about-phone-lens{position:absolute;top:12%;right:12%;width:17%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 35% 30%,#91b9db 0 10%,#263b51 24%,#05070b 65%);box-shadow:0 0 0 4px #171d26,0 0 0 5px #53606c}
+.about-phone-mark{position:absolute;inset:0;display:grid;place-items:center;color:rgba(183,243,107,.85);font-size:clamp(40px,6vw,76px);font-weight:950;letter-spacing:-.1em}
+.about-floating-chip{position:absolute;right:-9%;bottom:12%;border:1px solid rgba(183,243,107,.25);border-radius:12px;background:#151c20;padding:10px 12px;color:#b7f36b;font-size:9px;font-weight:900;letter-spacing:.13em;box-shadow:0 10px 28px #0005}
+.about-value-panel{background:radial-gradient(ellipse at 100% 0%,rgba(183,243,107,.09),transparent 45%),linear-gradient(120deg,#141a24,#0d1118)}
+.about-standard-card{min-height:220px;border:1px solid rgba(255,255,255,.08);border-radius:24px;background:linear-gradient(140deg,rgba(255,255,255,.035),rgba(255,255,255,.012));padding:23px;transition:transform .2s,border-color .2s}
+.about-standard-card:hover{transform:translateY(-2px);border-color:rgba(183,243,107,.25)}
+.about-standard-icon{display:grid;width:48px;height:48px;place-items:center;border:1px solid rgba(183,243,107,.18);border-radius:16px;background:rgba(183,243,107,.08);color:#b7f36b}
+.about-standard-number{color:rgba(183,243,107,.55);font-size:12px;font-weight:900;letter-spacing:.12em}
+.about-gift-strip{background:radial-gradient(ellipse at 0% 50%,rgba(183,243,107,.09),transparent 42%),rgba(255,255,255,.018)}
+.about-gift-illustration{display:grid;width:76px;height:76px;place-items:center;border:1px solid rgba(183,243,107,.2);border-radius:24px;background:rgba(183,243,107,.08);color:#b7f36b}
+.about-promise-card{border:1px solid rgba(255,255,255,.08);border-radius:20px;background:rgba(255,255,255,.02);padding:20px}
+.about-cta{background:radial-gradient(ellipse at 50% 0%,rgba(183,243,107,.11),transparent 50%),linear-gradient(120deg,#141a24,#0e1219)}
+:root[data-theme="light"] .about-hero{background:radial-gradient(ellipse at 85% 45%,rgba(117,164,47,.14),transparent 32%),linear-gradient(115deg,#fff 0%,#f2f5f8 60%,#edf4e9 100%);border-color:#e0e6ee}
+:root[data-theme="light"] .about-hero .text-white,:root[data-theme="light"] .about-value-panel .text-white,:root[data-theme="light"] .about-standard-card .text-white,:root[data-theme="light"] .about-gift-strip .text-white,:root[data-theme="light"] .about-promise-card .text-white,:root[data-theme="light"] .about-cta .text-white{color:#182230}
+:root[data-theme="light"] .about-hero .text-slate-300,:root[data-theme="light"] .about-value-panel .text-slate-300{color:#475467}
+:root[data-theme="light"] .about-value-panel,:root[data-theme="light"] .about-cta{background:radial-gradient(ellipse at 100% 0%,rgba(117,164,47,.09),transparent 45%),linear-gradient(120deg,#fff,#f3f6f8);border-color:#e0e6ee}
+:root[data-theme="light"] .about-standard-card,:root[data-theme="light"] .about-promise-card{background:linear-gradient(140deg,#fff,#f7f9fb);border-color:#e1e7ee}
+:root[data-theme="light"] .about-standard-icon,:root[data-theme="light"] .about-gift-illustration{background:#f0f8e7;border-color:#dcebc9;color:#5a8c23}
+:root[data-theme="light"] .about-gift-strip{background:radial-gradient(ellipse at 0% 50%,rgba(117,164,47,.08),transparent 42%),#fff;border-color:#e1e7ee}
+:root[data-theme="light"] .about-phone-card{border-color:#b9c2ce;background:linear-gradient(145deg,#e5eaf0,#8d9aa9 60%,#d4dbe3)}
+:root[data-theme="light"] .about-phone-card:before{border-color:rgba(255,255,255,.55)}
+:root[data-theme="light"] .about-floating-chip{background:#fff;border-color:#dcebc9;color:#5a8c23}
+@media(max-width:767px){.about-hero{min-height:570px}.about-hero-art{top:auto;right:12%;bottom:3%;width:42%;transform:none;opacity:.92}.about-phone-card{width:46%;height:72%}.about-floating-chip{right:-25%;bottom:8%;font-size:8px}.about-standard-card{min-height:0;padding:19px}.about-promise-card{padding:16px}}
+@media(max-width:380px){.about-hero-art{right:14%;width:39%}.about-floating-chip{right:-35%;padding:8px}}
