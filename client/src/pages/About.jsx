@@ -149,6 +149,16 @@ export default function About() {
       </section>
 
 
+      <section className="about-cta rounded-[2rem] border border-white/10 px-6 py-9 text-center sm:px-10 sm:py-12">
+        <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-accent text-ink"><Headphones size={23} /></span>
+        <p className="eyebrow mt-5 justify-center">МЫ РЯДОМ, ЕСЛИ НУЖНА ПОМОЩЬ</p>
+        <h2 className="mx-auto mt-3 max-w-2xl text-3xl font-black tracking-tight text-white sm:text-4xl">Технологии должны радовать. Давай найдём твою.</h2>
+        <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-400">Уже знаешь, что нужно? Загляни в каталог. Сравниваешь модели и не уверен? Напиши нам в Instagram — поможем разобраться.</p>
+        <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+          <Link to="/catalog" className="btn-primary">Перейти в каталог <ArrowRight size={18} /></Link>
+          <a href="https://t.me/mehrvar_01" target="_blank" rel="noreferrer" className="btn-secondary"><Send size={17} /> Написать в Telegram</a>
+        </div>
+      </section>
       <section className="about-map-panel overflow-hidden rounded-3xl border border-white/10">
         <div className="grid gap-6 p-6 sm:p-8 md:grid-cols-[.8fr_1.2fr] md:items-center">
           <div>
@@ -176,16 +186,6 @@ export default function About() {
         </div>
       </section>
 
-      <section className="about-cta rounded-[2rem] border border-white/10 px-6 py-9 text-center sm:px-10 sm:py-12">
-        <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-accent text-ink"><Headphones size={23} /></span>
-        <p className="eyebrow mt-5 justify-center">МЫ РЯДОМ, ЕСЛИ НУЖНА ПОМОЩЬ</p>
-        <h2 className="mx-auto mt-3 max-w-2xl text-3xl font-black tracking-tight text-white sm:text-4xl">Технологии должны радовать. Давай найдём твою.</h2>
-        <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-400">Уже знаешь, что нужно? Загляни в каталог. Сравниваешь модели и не уверен? Напиши нам в Instagram — поможем разобраться.</p>
-        <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-          <Link to="/catalog" className="btn-primary">Перейти в каталог <ArrowRight size={18} /></Link>
-          <a href="https://t.me/mehrvar_01" target="_blank" rel="noreferrer" className="btn-secondary"><Send size={17} /> Написать в Telegram</a>
-        </div>
-      </section>
     </main>
   );
 }
