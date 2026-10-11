@@ -2,9 +2,15 @@ import { Router } from 'express';
 import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import parsePhoneNumber from 'libphonenumber-js/max';
 const router = Router();
 const codes = new Map();
-const normalizePhone = phone => String(phone || '').replace(/[^\d+]/g, '');
+const normalizePhone = phone => String(phone || '').trim();
+const isValidE164Phone = value => {
+  if (!/^\+[1-9]\d{1,14}$/.test(value)) return false;
+  const parsed = parsePhoneNumber(value, { extract: false });
+  return Boolean(parsed && parsed.number === value && parsed.isValid());
+};
 const normalizeName = name => String(name || '').trim().replace(/\s+/g, ' ');
 const validName = name => name.length >= 2 && name.length <= 60 && /\p{L}/u.test(name) && /^[\p{L}\p{M} .'-]+$/u.test(name);
 function issueToken(user) {
@@ -22,7 +28,7 @@ function validTelegramPayload(data, botToken) {
 }
 router.post('/request-code', (req, res) => {
   const phone = normalizePhone(req.body.phone);
-  if (!/^\+?\d{8,15}$/.test(phone)) return res.status(400).json({ message: 'Введите корректный номер телефона' });
+  if (!isValidE164Phone(phone)) return res.status(400).json({ message: 'Введите корректный номер телефона в международном формате E.164' });
   const code = String(crypto.randomInt(0, 10000)).padStart(4, '0');
   codes.set(phone, { code, expires: Date.now() + 5 * 60 * 1000, attempts: 0 });
   console.log(`[DEV SMS] ${phone}: ${code} (expires in 5 minutes)`);
@@ -31,7 +37,7 @@ router.post('/request-code', (req, res) => {
 router.post('/verify-code', async (req, res, next) => {
   try {
     const phone = normalizePhone(req.body.phone), code = String(req.body.code || ''), name = normalizeName(req.body.name), record = codes.get(phone);
-    if (!/^\+?\d{8,15}$/.test(phone)) return res.status(400).json({ message: 'Введите корректный номер телефона' });
+    if (!isValidE164Phone(phone)) return res.status(400).json({ message: 'Введите корректный номер телефона в международном формате E.164' });
     if (!validName(name)) return res.status(400).json({ message: 'Имя должно содержать от 2 до 60 символов и состоять из букв, пробелов, дефиса или апострофа.' });
     if (!/^\d{4}$/.test(code)) return res.status(400).json({ message: 'Введите 4-значный код подтверждения' });
     if (!record || record.expires < Date.now() || record.attempts >= 5) { codes.delete(phone); return res.status(400).json({ message: 'Код истёк или не запрошен. Запросите новый код.' }); }
