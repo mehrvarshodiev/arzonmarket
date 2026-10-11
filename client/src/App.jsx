@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AppLoader from './components/AppLoader';
 
 const Home = lazy(() => import('./pages/Home'));
+const About = lazy(() => import('./pages/About'));
 const Catalog = lazy(() => import('./pages/Catalog'));
 const Product = lazy(() => import('./pages/Product'));
 const Cart = lazy(() => import('./pages/Cart'));
@@ -35,6 +36,7 @@ export default function App() {
       <Suspense fallback={<AppLoader message="Открываем страницу…" />}>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
           <Route path="/catalog" element={<Catalog />} />
           <Route path="/product/:id" element={<Product />} />
           <Route path="/cart" element={<Cart />} />
