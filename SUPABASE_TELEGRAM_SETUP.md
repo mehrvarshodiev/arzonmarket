@@ -1,42 +1,31 @@
-# ArzonMarket: Supabase and Telegram setup
+# ArzonMarket: Supabase + Vercel + Telegram admin
 
-## 1. Database schema
-1. Open https://supabase.com/dashboard and select the project **arzon market**.
-2. Open **SQL Editor** -> **New query**.
-3. Copy the complete contents of `supabase/schema.sql` from this branch in GitHub, paste into SQL Editor, then press **Run**.
-4. The script is designed to be re-runnable. It creates the `users` table required by the API in addition to products, orders, Telegram drafts, and the public product-images bucket.
-5. Confirm that the Tables page shows `products`, `users`, `orders`, and `telegram_product_drafts`.
+## 1. Supabase database
+The SQL schema has already been run for this project. It creates the `products`, `users`, `orders`, and `telegram_product_drafts` tables and the public `product-images` storage bucket. Do not rerun it unless the schema is intentionally changed.
 
-## 2. API server environment
-The Express API in `server/` is a separate Node.js service; deploying the static React client on Vercel does not by itself deploy this API. Deploy the `server/` directory to a Node.js host that supports long-running Express apps, and set these server-only environment variables there:
-- `SUPABASE_URL`: the project URL (for this project: `https://trmgpwwgeylxcvsquxwp.supabase.co`)
-- `SUPABASE_SERVICE_ROLE_KEY`: the Supabase secret/service-role key. Never expose it in the browser or commit it.
-- `JWT_SECRET`: a long, random secret used to sign login tokens.
-- `CLIENT_ORIGIN`: the exact storefront origin, e.g. `https://arzonmarket-omega.vercel.app`.
-- `TELEGRAM_BOT_TOKEN`: optional, for order notifications and Telegram sign-in.
-- `TELEGRAM_CHAT_ID`: optional chat ID for order notifications.
+## 2. Vercel environment variables
+In Vercel -> project `arzonmarket` -> Settings -> Environment Variables, add these for Production (and Preview if you will test previews):
+- `SUPABASE_URL` = `https://trmgpwwgeylxcvsquxwp.supabase.co`
+- `SUPABASE_SERVICE_ROLE_KEY` = the Supabase service-role/secret key. Keep it server-only; never use a `VITE_` prefix.
+- `TELEGRAM_BOT_TOKEN` = token from BotFather.
+- `TELEGRAM_ADMIN_IDS` = the numeric Telegram user ID of the one allowed admin. Do not put `@mehrvar_01` here; the allowlist must use the numeric ID.
+- `TELEGRAM_WEBHOOK_SECRET` = a long random secret string.
 
-After deployment, open `https://YOUR-API-HOST/api/health`; it should return JSON with `"status":"ok"` and `"database":"connected"`.
+The product catalog endpoint is a Vercel serverless function at `/api/products` and reads active products directly from Supabase. The React client uses `/api` automatically in production, so `VITE_API_URL` is not required for product browsing. Redeploy after changing environment variables.
 
-## 3. Connect the storefront to the API
-In the Vercel project serving `client/`, set:
-- `VITE_API_URL`: the full API base URL ending in `/api`, e.g. `https://YOUR-API-HOST/api`.
-- `VITE_TELEGRAM_BOT_USERNAME`: optional bot username without the @ symbol if Telegram login is configured.
+## 3. Restrict bot access to the intended Telegram account
+1. In Telegram, open a trusted user-ID bot such as `@userinfobot` and get the numeric ID for the intended admin account `@mehrvar_01`.
+2. Put only that numeric ID in `TELEGRAM_ADMIN_IDS`. Never use the username as the security check; usernames can change.
+3. Set the Telegram webhook to:
+   `https://arzonmarket-omega.vercel.app/api/telegram-webhook`
+   Configure the webhook with the same `TELEGRAM_WEBHOOK_SECRET` value as Telegram's `secret_token`.
+4. After the Vercel deployment is ready, open your store bot in Telegram and send `/start`.
 
-Redeploy the frontend after setting or changing `VITE_API_URL`.
+## 4. Add a product in Telegram
+Send `/add`, then answer the bot prompts for product name, brand, category, price, stock, description, and a direct HTTPS image URL (or `—` to skip the description/photo). When the bot confirms success, it has inserted the product into Supabase with `is_active=true`; the storefront's `/api/products` endpoint reads that same table, so the product can appear in the catalog. Use `/products` to see the latest entries and `/cancel` to stop.
 
-## 4. Telegram product-management webhook
-The serverless webhook is `client/api/telegram-webhook.js`. For that function on Vercel, configure:
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_ADMIN_IDS`: comma-separated numeric Telegram user IDs authorized to manage products
-- `TELEGRAM_WEBHOOK_SECRET`: a long random string
-
-Register `https://YOUR-VERCEL-DOMAIN/api/telegram-webhook` with Telegram's setWebhook API and set the same secret as `secret_token`.
-
-## 5. Important readiness notes
-- The phone-code route currently generates a code in server memory but does not send SMS. Real phone login is **not ready for customers** until an SMS provider and persistent, rate-limited verification flow are configured.
-- Do not grant public read/write access to users, orders, or Telegram drafts. Server-side API access must use the secret key.
-- Never use the service-role key in any `VITE_*` variable or frontend code.
-- Do not merge this branch or enable production ordering until the API is deployed and tested end-to-end.
+## 5. Security and remaining limitations
+- Never place `SUPABASE_SERVICE_ROLE_KEY` in frontend code, a `VITE_*` variable, or GitHub.
+- The Telegram bot currently accepts product images by HTTPS URL, not as Telegram photo attachments.
+- This change connects the storefront product list and Telegram product creation to Supabase. Other customer login/order API routes still need their own Vercel-compatible deployment before claiming the whole store is production-ready.
+- Phone-code login currently does not send SMS and is not ready for real customers until an SMS provider and persistent, rate-limited verification are configured.
