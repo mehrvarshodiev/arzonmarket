@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { House, ShoppingBag, ShoppingCart, UserRound, ShieldCheck, Smartphone, Sun, Moon } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -31,8 +32,34 @@ function ThemeSwitcher({ mobile = false }) {
 export default function Navbar() {
   const { count } = useCart();
   const { user, isAdmin } = useAuth();
+  const [headerHidden, setHeaderHidden] = useState(false);
+  const previousScrollY = useRef(0);
+
+  useEffect(() => {
+    previousScrollY.current = window.scrollY;
+    let ticking = false;
+
+    const updateHeader = () => {
+      const currentY = Math.max(0, window.scrollY);
+      const delta = currentY - previousScrollY.current;
+      if (currentY < 80) setHeaderHidden(false);
+      else if (Math.abs(delta) > 6) setHeaderHidden(delta > 0);
+      previousScrollY.current = currentY;
+      ticking = false;
+    };
+
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateHeader);
+        ticking = true;
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return <>
-    <header className="site-header sticky top-0 z-40 border-b backdrop-blur-xl">
+    <header className={`site-header sticky top-0 z-40 border-b backdrop-blur-xl ${headerHidden ? "site-header-hidden" : "site-header-visible"}`} data-header-hidden={headerHidden}>
       <div className="container-shell flex h-[68px] items-center justify-between gap-3 md:h-[76px]">
         <Brand compact />
         <nav className="desktop-nav hidden items-center gap-1 md:flex" aria-label="Основная навигация">
