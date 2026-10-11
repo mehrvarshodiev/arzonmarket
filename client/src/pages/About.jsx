@@ -7,6 +7,7 @@ import {
   Gift,
   Headphones,
   Instagram,
+  MapPin,
   Send,
   PackageCheck,
   ShieldCheck,
@@ -144,6 +145,34 @@ export default function About() {
               <p className="mt-2 text-xs leading-5 text-slate-400">{detail}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+
+      <section className="about-map-panel overflow-hidden rounded-3xl border border-white/10">
+        <div className="grid gap-6 p-6 sm:p-8 md:grid-cols-[.8fr_1.2fr] md:items-center">
+          <div>
+            <p className="eyebrow"><MapPin size={15} /> НАЙДИ НАС</p>
+            <h2 className="section-title mt-3">Наш магазин</h2>
+            <p className="mt-4 flex items-start gap-3 text-sm leading-7 text-slate-300 sm:text-base">
+              <MapPin className="mt-1 shrink-0 text-accent" size={20} />
+              <span>Метро «Сходненская», выход № 1, торговый центр «Оранжевый мир», 3-й этаж, магазин «Арзон Маркет», Москва.</span>
+            </p>
+            <a href="https://yandex.ru/maps/?text=%D0%BC%D0%B5%D1%82%D1%80%D0%BE%20%D0%A1%D1%85%D0%BE%D0%B4%D0%BD%D0%B5%D0%BD%D1%81%D0%BA%D0%B0%D1%8F%2C%20%D0%B2%D1%8B%D1%85%D0%BE%D0%B4%20%E2%84%96%201%2C%20%D0%A2%D0%A6%20%D0%9E%D1%80%D0%B0%D0%BD%D0%B6%D0%B5%D0%B2%D1%8B%D0%B9%20%D0%BC%D0%B8%D1%80%2C%203%20%D1%8D%D1%82%D0%B0%D0%B6%2C%20%D0%90%D1%80%D0%B7%D0%BE%D0%BD%20%D0%9C%D0%B0%D1%80%D0%BA%D0%B5%D1%82%2C%20%D0%9C%D0%BE%D1%81%D0%BA%D0%B2%D0%B0" target="_blank" rel="noreferrer" className="btn-secondary mt-5 inline-flex">
+              <MapPin size={17} /> Открыть в Яндекс Картах <ArrowRight size={17} />
+            </a>
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
+            <iframe
+              title="Arzon Market на Яндекс Картах"
+              src="https://yandex.ru/map-widget/v1/?text=%D0%BC%D0%B5%D1%82%D1%80%D0%BE%20%D0%A1%D1%85%D0%BE%D0%B4%D0%BD%D0%B5%D0%BD%D1%81%D0%BA%D0%B0%D1%8F%2C%20%D0%B2%D1%8B%D1%85%D0%BE%D0%B4%20%E2%84%96%201%2C%20%D0%A2%D0%A6%20%D0%9E%D1%80%D0%B0%D0%BD%D0%B6%D0%B5%D0%B2%D1%8B%D0%B9%20%D0%BC%D0%B8%D1%80%2C%203%20%D1%8D%D1%82%D0%B0%D0%B6%2C%20%D0%90%D1%80%D0%B7%D0%BE%D0%BD%20%D0%9C%D0%B0%D1%80%D0%BA%D0%B5%D1%82%2C%20%D0%9C%D0%BE%D1%81%D0%BA%D0%B2%D0%B0"
+              width="100%"
+              height="360"
+              loading="lazy"
+              allowFullScreen
+              className="block w-full"
+            />
+          </div>
         </div>
       </section>
 
