@@ -26,6 +26,6 @@ Send `/add`, then answer the bot prompts for product name, brand, category, pric
 
 ## 5. Security and remaining limitations
 - Never place `SUPABASE_SERVICE_ROLE_KEY` in frontend code, a `VITE_*` variable, or GitHub.
-- The Telegram bot currently accepts product images by HTTPS URL, not as Telegram photo attachments.
+- Product photos can be sent directly in the Telegram chat from a phone gallery or laptop. The webhook downloads the image from Telegram and uploads it to the Supabase Storage `product-images` bucket, then saves the public image URL in the product's `images` field. Images must be under 8 MB; send as a photo or as an image document. HTTPS links are still supported as an alternative.
 - This change connects the storefront product list and Telegram product creation to Supabase. Other customer login/order API routes still need their own Vercel-compatible deployment before claiming the whole store is production-ready.
 - Phone-code login currently does not send SMS and is not ready for real customers until an SMS provider and persistent, rate-limited verification are configured.
