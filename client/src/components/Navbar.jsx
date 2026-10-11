@@ -40,7 +40,7 @@ export default function Navbar() {
         </nav>
         <div className="header-actions flex items-center gap-2">
           <ThemeSwitcher />
-          <Link to="/login" className="btn-secondary header-login !px-3 !py-2" aria-label="Войти в профиль"><UserRound size={17}/><span className="hidden lg:inline">{user?.name || user?.phone || 'Войти'}</span></Link>
+          <Link to="/login" className="btn-secondary header-login hidden !px-3 !py-2 md:inline-flex" aria-label="Войти в профиль"><UserRound size={17}/><span className="hidden lg:inline">{user?.name || user?.phone || 'Войти'}</span></Link>
           {isAdmin && <Link to="/admin" className="icon-btn hidden md:inline-flex" aria-label="Админ"><ShieldCheck size={18}/></Link>}
           <Link to="/cart" className="btn-primary header-cart !px-3 !py-2" aria-label={`Корзина, товаров: ${count}`}><ShoppingCart size={17}/><span className="hidden sm:inline">Корзина</span><span className="cart-count rounded-full bg-black/10 px-2 py-0.5">{count}</span></Link>
         </div>
