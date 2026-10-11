@@ -34,7 +34,7 @@ function Footer() {
             <h2 className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Связаться с нами</h2>
             <a
               href="tel:+79262770808"
-              className="group mt-4 inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 transition hover:border-accent/40 hover:bg-accent/5"
+              className="group mt-4 flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 transition hover:border-accent/40 hover:bg-accent/5"
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
                 <Phone size={18} />
