@@ -98,7 +98,7 @@ export default function Login() {
         <div className="telegram-divider"><span>или</span></div>
         {telegramBotUsername
           ? <div ref={telegramWidgetRef} className="telegram-widget-slot" aria-label="Войти через Telegram" />
-          : <button type="button" className="telegram-login-button" onClick={() => setError('Кнопка Telegram готова. Реальный вход подключим после создания бота.')}><Send size={18}/> Войти через Telegram</button>}
+          : <button type="button" className="telegram-login-button" onClick={() => setError('')}><Send size={18}/> Войти через Telegram</button>}
       </div>
     </form>}
   </section></main>;
