@@ -213,3 +213,12 @@
 :root[data-theme="light"] .about-floating-chip{background:#fff;border-color:#dcebc9;color:#5a8c23}
 @media(max-width:767px){.about-hero{min-height:570px}.about-hero-art{top:auto;right:12%;bottom:3%;width:42%;transform:none;opacity:.92}.about-phone-card{width:46%;height:72%}.about-floating-chip{right:-25%;bottom:8%;font-size:8px}.about-standard-card{min-height:0;padding:19px}.about-promise-card{padding:16px}}
 @media(max-width:380px){.about-hero-art{right:14%;width:39%}.about-floating-chip{right:-35%;padding:8px}}
+
+
+/* Keep footer contact handles readable in the light theme. */
+:root[data-theme="light"] .site-footer a[href^="tel:"] .font-semibold,
+:root[data-theme="light"] .site-footer a[href*="instagram.com"] .font-semibold,
+:root[data-theme="light"] .site-footer a[href*="t.me/"] .font-semibold{color:#182230}
+:root[data-theme="light"] .site-footer a[href^="tel:"]:hover .font-semibold{color:#527d1f}
+:root[data-theme="light"] .site-footer a[href*="instagram.com"]:hover .font-semibold{color:#9d174d}
+:root[data-theme="light"] .site-footer a[href*="t.me/"]:hover .font-semibold{color:#075985}
