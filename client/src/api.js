@@ -4,18 +4,14 @@ const apiUrl = import.meta.env.VITE_API_URL;
 const isDevelopment = import.meta.env.DEV;
 
 const api = axios.create({
-  baseURL: apiUrl || (isDevelopment ? 'http://localhost:5000/api' : undefined),
-  timeout: 8000,
+  // In production Vercel serves /api/* as serverless functions.
+  // VITE_API_URL can override this when an external API is intentionally used.
+  baseURL: apiUrl || (isDevelopment ? 'http://localhost:5000/api' : '/api'),
+  timeout: 12000,
   headers: { Accept: 'application/json' },
 });
 
 api.interceptors.request.use((config) => {
-  if (import.meta.env.PROD && !apiUrl) {
-    const error = new Error('API_NOT_CONFIGURED');
-    error.code = 'API_NOT_CONFIGURED';
-    return Promise.reject(error);
-  }
-
   const token = localStorage.getItem('am_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
