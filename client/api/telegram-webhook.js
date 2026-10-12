@@ -181,10 +181,12 @@ export default async function handler(req, res) {
     const chatId = callback?.message?.chat?.id ?? message?.chat?.id;
     if (!chatId || !actorId) return reply(res, { ok: true });
 
-    const admins = (env("TELEGRAM_ADMIN_IDS") || "").split(",").map(v => v.trim()).filter(Boolean);
+    const admins = (env("TELEGRAM_ADMIN_IDS") || "")
+      .split(",").map(v => v.trim().replace(/^@/, "").toLowerCase()).filter(Boolean);
     const userId = String(actorId);
-    if (!admins.includes(userId)) {
-      await send(message.chat.id, "⛔ Этот бот доступен только администратору магазина.");
+    const username = String(callback?.from?.username ?? message?.from?.username ?? "").toLowerCase();
+    if (!admins.includes(userId) && (!username || !admins.includes(username))) {
+      await send(chatId, "⛔ Этот бот доступен только администратору магазина. Проверь TELEGRAM_ADMIN_IDS в настройках Vercel.");
       return reply(res, { ok: true });
     }
 
