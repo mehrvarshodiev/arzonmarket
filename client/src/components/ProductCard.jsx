@@ -14,13 +14,16 @@ export default function ProductCard({ product }) {
   const [touchStart, setTouchStart] = useState(null);
 
   // Keep the existing product shape, while accepting gallery/color variants when present.
-  const colors = Array.isArray(product.colors) ? product.colors : [];
+  const colors = Array.isArray(product.colors) && product.colors.length
+    ? product.colors
+    : (Array.isArray(product.specs) ? product.specs.filter(spec => spec && (spec.key === 'Цвет' || spec.key === 'Color')).map(spec => spec.value).filter(Boolean) : []);
   const images = useMemo(() => {
     const source = selectedColor && typeof selectedColor === 'object'
       ? [...(Array.isArray(selectedColor.images) ? selectedColor.images : []), selectedColor.image].filter(Boolean)
       : [];
     const base = Array.isArray(product.images) ? product.images : [];
-    return [...new Set([...source, ...base].filter(x => typeof x === 'string' && x.trim()))];
+    const legacyImage = [product.image, product.image_url, product.imageUrl, product.photo].filter(Boolean);
+    return [...new Set([...source, ...base, ...legacyImage].filter(x => typeof x === 'string' && x.trim()))];
   }, [product.images, selectedColor]);
   const gallery = images.length ? images : [placeholder];
   const currentImage = gallery[Math.min(activeImage, gallery.length - 1)];
@@ -100,7 +103,7 @@ export default function ProductCard({ product }) {
         {colors.length > 0 && <div className="mt-2 flex min-h-6 items-center gap-1.5" aria-label="Выбор цвета">
           {colors.slice(0, 6).map((color, index) => {
             const name = typeof color === 'string' ? color : color.name || `Цвет ${index + 1}`;
-            const hex = typeof color === 'object' ? color.hex || color.color : undefined;
+            const hex = typeof color === 'object' ? color.hex || color.color : (typeof color === 'string' && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(color) ? color : undefined);
             const selected = selectedColor === color;
             return <button key={name + index} type="button" title={name} aria-label={name} onClick={() => { setSelectedColor(color); setActiveImage(0); }}
               className={`h-4 w-4 rounded-full border-2 transition hover:scale-110 sm:h-[18px] sm:w-[18px] ${selected ? 'border-[#7c3aed] ring-1 ring-[#7c3aed]/30' : 'border-white shadow-[0_0_0_1px_#d1d5db]'}`}
