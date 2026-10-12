@@ -295,7 +295,7 @@ export default async function handler(req, res) {
       await send(message.chat.id, summary);
       return reply(res, { ok: true });
     }
-    const commandMatch = text.match(/^\/(edit|delete)\\s+([0-9a-f-]{36})$/i);
+    const commandMatch = text.match(new RegExp("^/(edit|delete)\\s+([0-9a-f-]{36})$", "i"));
     if (commandMatch) {
       const [, command, id] = commandMatch;
       const product = await getProduct(id);
@@ -338,7 +338,7 @@ export default async function handler(req, res) {
         try {
           if (message.photo?.length) imageUrl = await saveTelegramPhoto(message.photo);
           else if (message.document?.mime_type?.startsWith("image/")) imageUrl = await saveTelegramPhoto([{ file_id: message.document.file_id, file_size: message.document.file_size }]);
-          else if (/^https:\\/\\//i.test(text)) imageUrl = await saveImageFromUrl(text);
+          else if (text.startsWith("https://")) imageUrl = await saveImageFromUrl(text);
           else { await send(message.chat.id, "Отправь фото/HTTPS-ссылку или /done."); return reply(res, { ok: true }); }
         } catch (error) { await send(message.chat.id, "Не удалось сохранить фото: " + error.message); return reply(res, { ok: true }); }
         draft.images = [...(draft.images || []), imageUrl].slice(0, 10);
@@ -390,7 +390,7 @@ export default async function handler(req, res) {
         }
       } else {
         const value = text === "—" ? "" : text;
-        if (value && !/^https:\/\//i.test(value)) {
+        if (value && !value.startsWith("https://")) {
           await send(message.chat.id, "Отправь фото из галереи/файлов, прямую HTTPS-ссылку или — если без фото:");
           return reply(res, { ok: true });
         }
@@ -424,7 +424,7 @@ export default async function handler(req, res) {
       }
     }
 
-    if (key === "image" && text !== "/done" && (message.photo?.length || message.document?.mime_type?.startsWith("image/") || /^https:\\/\\//i.test(text))) {
+    if (key === "image" && text !== "/done" && (message.photo?.length || message.document?.mime_type?.startsWith("image/") || text.startsWith("https://"))) {
       await saveDraft(userId, "image", draft);
       await send(message.chat.id, `📸 Фото сохранено (${draft.images?.length || 0}/10). Отправь ещё одно фото или /done для завершения.`);
       return reply(res, { ok: true });
