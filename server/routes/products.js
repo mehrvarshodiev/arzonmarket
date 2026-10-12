@@ -15,7 +15,7 @@ const cleanProduct = body => ({
   category: String(body.category || '').trim(),
   brand: String(body.brand || '').trim(),
   images: Array.isArray(body.images) ? body.images.map(String).filter(s => /^https?:\/\//i.test(s)).slice(0, 10) : [],
-  specs: Array.isArray(body.specs) ? body.specs.filter(s => s && String(s.key || '').trim() && String(s.value || '').trim()).map(s => ({ key: String(s.key).trim(), value: String(s.value).trim() })).slice(0, 50) : [],
+  specs: [...(Array.isArray(body.specs) ? body.specs.filter(s => s && String(s.key || '').trim() && String(s.value || '').trim() && String(s.key).trim() !== 'Цвет').map(s => ({ key: String(s.key).trim(), value: String(s.value).trim() })) : []), ...(Array.isArray(body.colors) ? body.colors : typeof body.colors === 'string' ? body.colors.split(/[,;\\n]/) : []).map(s => String(s).trim()).filter(Boolean).slice(0, 12).map(value => ({ key: 'Цвет', value }))].slice(0, 50),
   featured: Boolean(body.featured),
   stock: Math.max(0, Math.floor(Number(body.stock || 0)))
 });
