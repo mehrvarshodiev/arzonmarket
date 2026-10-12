@@ -54,44 +54,86 @@ async function clearDraft(userId) {
   return supabase(`telegram_product_drafts?telegram_user_id=eq.${userId}`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
 }
 
-async function saveTelegramPhoto(photoSizes) {
-  const token = env("TELEGRAM_BOT_TOKEN");
-  const photo = [...photoSizes].sort((a, b) => (b.file_size || 0) - (a.file_size || 0))[0];
-  if (!photo?.file_id) throw new Error("Telegram photo has no file_id");
-
-  const fileInfo = await telegram("getFile", { file_id: photo.file_id });
-  if (!fileInfo.file_path) throw new Error("Telegram did not return a file path");
-
-  const downloadUrl = `https://api.telegram.org/file/bot${token}/${fileInfo.file_path}`;
-  const downloaded = await fetch(downloadUrl);
-  if (!downloaded.ok) throw new Error("Unable to download photo from Telegram");
-  const contentType = downloaded.headers.get("content-type") || "image/jpeg";
-  if (!contentType.startsWith("image/")) throw new Error("Uploaded Telegram file is not an image");
-  const bytes = await downloaded.arrayBuffer();
-  if (!bytes.byteLength || bytes.byteLength > 8 * 1024 * 1024) {
-    throw new Error("Photo must be smaller than 8 MB");
+function imageType(bytes, declaredType = "", sourcePath = "") {
+  const raw = new Uint8Array(bytes);
+  const declared = String(declaredType).split(";")[0].trim().toLowerCase();
+  const signatures = [
+    { ok: raw[0] === 0xff && raw[1] === 0xd8 && raw[2] === 0xff, type: "image/jpeg", ext: "jpg" },
+    { ok: raw[0] === 0x89 && raw[1] === 0x50 && raw[2] === 0x4e && raw[3] === 0x47, type: "image/png", ext: "png" },
+    { ok: raw[0] === 0x52 && raw[1] === 0x49 && raw[2] === 0x46 && raw[3] === 0x46 && String.fromCharCode(...raw.slice(8, 12)) === "WEBP", type: "image/webp", ext: "webp" },
+    { ok: String.fromCharCode(...raw.slice(0, 3)) === "GIF", type: "image/gif", ext: "gif" }
+  ];
+  const found = signatures.find((item) => item.ok);
+  if (found) return found;
+  const known = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif", "image/avif": "avif", "image/bmp": "bmp" };
+  if (declared.startsWith("image/") && known[declared]) return { type: declared, ext: known[declared] };
+  const match = String(sourcePath).toLowerCase().match(/\.(jpe?g|png|webp|gif|avif|bmp)(?:$|[?#])/);
+  if (match) {
+    const ext = match[1] === "jpeg" ? "jpg" : match[1];
+    return { type: ext === "jpg" ? "image/jpeg" : "image/" + ext, ext };
   }
+  throw new Error("Ссылка не ведёт напрямую на изображение. Отправь прямую HTTPS-ссылку на JPG, PNG или WEBP.");
+}
 
+async function ensurePublicImageBucket() {
   const base = env("SUPABASE_URL");
   const key = env("SUPABASE_SERVICE_ROLE_KEY");
-  const extByType = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" };
-  const ext = extByType[contentType.split(";")[0].toLowerCase()] || "jpg";
-  const objectPath = `telegram-products/${Date.now()}-${photo.file_unique_id || photo.file_id}.${ext}`;
-  const upload = await fetch(`${base}/storage/v1/object/product-images/${objectPath}`, {
+  const response = await fetch(base + "/storage/v1/bucket/product-images", {
+    method: "PUT",
+    headers: { apikey: key, Authorization: "Bearer " + key, "Content-Type": "application/json" },
+    body: JSON.stringify({ public: true })
+  });
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error("Не удалось открыть публичный доступ к product-images (" + response.status + "): " + detail.slice(0, 180));
+  }
+}
+
+async function storeProductImage(bytes, declaredType, sourcePath = "") {
+  if (!bytes || !bytes.byteLength || bytes.byteLength > 8 * 1024 * 1024) {
+    throw new Error("Фото должно быть меньше 8 МБ");
+  }
+  const base = env("SUPABASE_URL");
+  const key = env("SUPABASE_SERVICE_ROLE_KEY");
+  const detected = imageType(bytes, declaredType, sourcePath);
+  await ensurePublicImageBucket();
+  const objectPath = "telegram-products/" + Date.now() + "-" + Math.random().toString(36).slice(2, 10) + "." + detected.ext;
+  const upload = await fetch(base + "/storage/v1/object/product-images/" + objectPath, {
     method: "POST",
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      "Content-Type": contentType,
-      "x-upsert": "true"
-    },
+    headers: { apikey: key, Authorization: "Bearer " + key, "Content-Type": detected.type, "x-upsert": "true" },
     body: bytes
   });
   if (!upload.ok) {
     const detail = await upload.text();
-    throw new Error(`Supabase photo upload failed (${upload.status}): ${detail.slice(0, 200)}`);
+    throw new Error("Supabase photo upload failed (" + upload.status + "): " + detail.slice(0, 200));
   }
-  return `${base}/storage/v1/object/public/product-images/${objectPath}`;
+  return base + "/storage/v1/object/public/product-images/" + objectPath;
+}
+
+async function saveTelegramPhoto(photoSizes) {
+  const token = env("TELEGRAM_BOT_TOKEN");
+  const photo = [...photoSizes].sort((a, b) => (b.file_size || 0) - (a.file_size || 0))[0];
+  if (!photo || !photo.file_id) throw new Error("Telegram photo has no file_id");
+  const fileInfo = await telegram("getFile", { file_id: photo.file_id });
+  if (!fileInfo.file_path) throw new Error("Telegram did not return a file path");
+  const downloaded = await fetch("https://api.telegram.org/file/bot" + token + "/" + fileInfo.file_path);
+  if (!downloaded.ok) throw new Error("Не удалось скачать изображение из Telegram");
+  const bytes = await downloaded.arrayBuffer();
+  return storeProductImage(bytes, downloaded.headers.get("content-type") || "", fileInfo.file_path);
+}
+
+async function saveImageFromUrl(imageUrl) {
+  let parsed;
+  try { parsed = new URL(imageUrl); } catch { throw new Error("Неверная ссылка на изображение"); }
+  if (parsed.protocol !== "https:") throw new Error("Для изображения нужна HTTPS-ссылка");
+  const downloaded = await fetch(parsed.toString(), { redirect: "follow" });
+  if (!downloaded.ok) throw new Error("Не удалось открыть ссылку на фото (" + downloaded.status + ")");
+  const type = downloaded.headers.get("content-type") || "";
+  if (!type.toLowerCase().startsWith("image/") && !/\.(jpe?g|png|webp|gif|avif|bmp)(?:$|[?#])/i.test(parsed.pathname + parsed.search)) {
+    throw new Error("Ссылка открывает страницу, а не сам файл изображения. Нужна прямая HTTPS-ссылка на картинку.");
+  }
+  const bytes = await downloaded.arrayBuffer();
+  return storeProductImage(bytes, type, parsed.pathname + parsed.search);
 }
 
 const STEPS = [
@@ -182,7 +224,17 @@ export default async function handler(req, res) {
           await send(message.chat.id, "Отправь фото из галереи/файлов, прямую HTTPS-ссылку или — если без фото:");
           return reply(res, { ok: true });
         }
-        draft.images = value ? [value] : [];
+        if (value) {
+          try {
+            draft.images = [await saveImageFromUrl(value)];
+          } catch (error) {
+            console.error("Telegram product image URL error:", error);
+            await send(message.chat.id, "Не удалось сохранить картинку по ссылке. " + (error.message || "Проверь ссылку и попробуй ещё раз."));
+            return reply(res, { ok: true });
+          }
+        } else {
+          draft.images = [];
+        }
       }
     } else {
       if (typeof message.text !== "string") {
