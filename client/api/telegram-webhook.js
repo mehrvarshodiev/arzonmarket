@@ -33,8 +33,28 @@ async function telegram(method, payload) {
   return data.result;
 }
 
-async function send(chatId, text) {
-  return telegram("sendMessage", { chat_id: chatId, text, reply_markup: { remove_keyboard: true } });
+async function send(chatId, text, extra = {}) {
+  return telegram("sendMessage", { chat_id: chatId, text, ...extra });
+}
+async function answerCallback(callbackQueryId, text) {
+  return telegram("answerCallbackQuery", { callback_query_id: callbackQueryId, text });
+}
+async function getProduct(id) {
+  const rows = await supabase(`products?id=eq.${encodeURIComponent(id)}&select=id,name,brand,category,price,stock,description,images,is_active&limit=1`);
+  return rows?.[0] || null;
+}
+async function patchProduct(id, patch) {
+  return supabase(`products?id=eq.${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({ ...patch, updated_at: new Date().toISOString() })
+  });
+}
+async function deleteProduct(id) {
+  return supabase(`products?id=eq.${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=representation" }
+  });
 }
 
 async function saveDraft(userId, step, draft) {
@@ -156,29 +176,138 @@ export default async function handler(req, res) {
   try {
     const update = req.body || {};
     const message = update.message;
-    if (!message?.chat?.id || !message?.from?.id) return reply(res, { ok: true });
+    const callback = update.callback_query;
+    const actorId = callback?.from?.id ?? message?.from?.id;
+    const chatId = callback?.message?.chat?.id ?? message?.chat?.id;
+    if (!chatId || !actorId) return reply(res, { ok: true });
 
     const admins = (env("TELEGRAM_ADMIN_IDS") || "").split(",").map(v => v.trim()).filter(Boolean);
-    const userId = String(message.from.id);
+    const userId = String(actorId);
     if (!admins.includes(userId)) {
       await send(message.chat.id, "⛔ Этот бот доступен только администратору магазина.");
       return reply(res, { ok: true });
     }
 
+    if (callback) {
+      const [action, id] = String(callback.data || "").split(":");
+      if (action === "confirmdelete" && id) {
+        const product = await getProduct(id);
+        if (!product) {
+          await answerCallback(callback.id, "Товар не найден");
+          await send(chatId, "Товар не найден.");
+        } else {
+          await answerCallback(callback.id, "Подтверди удаление");
+          await telegram("sendMessage", {
+            chat_id: chatId,
+            text: `Удалить «${product.name}» без возможности восстановления?`,
+            reply_markup: { inline_keyboard: [[
+              { text: "Да, удалить", callback_data: `delete:${id}` },
+              { text: "Отмена", callback_data: "canceldelete" }
+            ]] }
+          });
+        }
+      } else if (action === "delete" && id) {
+        const product = await getProduct(id);
+        if (!product) {
+          await answerCallback(callback.id, "Товар не найден");
+          await send(chatId, "Товар не найден или уже удалён.");
+        } else {
+          await deleteProduct(id);
+          await answerCallback(callback.id, "Товар удалён");
+          await send(chatId, `🗑 Удалён товар: ${product.name}\nID: ${id}`);
+        }
+      } else if (action === "canceldelete") {
+        await answerCallback(callback.id, "Удаление отменено");
+        await send(chatId, "Удаление отменено.");
+      } else if (action === "edit" && id) {
+        const product = await getProduct(id);
+        if (!product) {
+          await answerCallback(callback.id, "Товар не найден");
+          await send(chatId, "Товар не найден.");
+        } else {
+          await saveDraft(userId, "edit_field", { productId: id });
+          await answerCallback(callback.id, "Выбери поле");
+          await telegram("sendMessage", {
+            chat_id: chatId,
+            text: `✏️ Что изменить у товара «${product.name}»?`,
+            reply_markup: { inline_keyboard: [
+              [{ text: "Название", callback_data: `field:name:${id}` }, { text: "Цена", callback_data: `field:price:${id}` }],
+              [{ text: "Остаток", callback_data: `field:stock:${id}` }, { text: "Категория", callback_data: `field:category:${id}` }],
+              [{ text: "Описание", callback_data: `field:description:${id}` }, { text: "Фото", callback_data: `field:images:${id}` }]
+            ]}
+          });
+        }
+      } else if (action === "field") {
+        const parts = String(callback.data || "").split(":");
+        const field = parts[1], id = parts[2];
+        const allowed = ["name", "price", "stock", "category", "description", "images"];
+        if (!allowed.includes(field) || !id) {
+          await answerCallback(callback.id, "Неизвестное поле");
+        } else {
+          await saveDraft(userId, "edit_" + field, { productId: id, field });
+          await answerCallback(callback.id, "Готово");
+          const prompts = { name: "Отправь новое название:", price: "Отправь новую цену числом:", stock: "Отправь новый остаток целым числом:", category: "Отправь новую категорию:", description: "Отправь новое описание:", images: "Отправляй новые фото по одному. Напиши /done, когда закончишь; текущая галерея будет заменена." };
+          await send(chatId, prompts[field]);
+        }
+      } else {
+        await answerCallback(callback.id, "Команда не распознана");
+      }
+      return reply(res, { ok: true });
+    }
     const text = typeof message.text === "string" ? message.text.trim() : "";
     if (text === "/start" || text === "/help") {
       await send(message.chat.id, "ArzonMarket — админ-бот\n/add — добавить товар\n/cancel — отменить добавление\n/products — последние товары");
       return reply(res, { ok: true });
     }
+    if (text === "/done") {
+      const active = await getDraft(userId);
+      if (active?.step === "image") {
+        const draft = active.draft || {};
+        if (!draft.images?.length) {
+          await send(message.chat.id, "Сначала отправь хотя бы одно фото или напиши — чтобы продолжить без фото.");
+          return reply(res, { ok: true });
+        }
+        // The add-product flow completes below using the current draft.
+      } else if (active?.step === "edit_images") {
+        if (!active.draft?.images?.length) {
+          await send(message.chat.id, "Отправь хотя бы одно фото или напиши /cancel, чтобы отменить.");
+          return reply(res, { ok: true });
+        }
+        await patchProduct(active.draft.productId, { images: active.draft.images });
+        await clearDraft(userId);
+        await send(message.chat.id, `✅ Галерея обновлена. Фото: ${active.draft.images.length}`);
+        return reply(res, { ok: true });
+      } else {
+        await send(message.chat.id, "Сейчас нет загрузки фото.");
+        return reply(res, { ok: true });
+      }
+    }
     if (text === "/cancel") {
       await clearDraft(userId);
-      await send(message.chat.id, "Добавление товара отменено.");
+      await send(message.chat.id, "Текущее действие отменено.");
       return reply(res, { ok: true });
     }
     if (text === "/products") {
       const products = await supabase("products?select=name,price,stock,category&order=created_at.desc&limit=10");
       const summary = products.length ? products.map((p, i) => `${i + 1}. ${p.name} — ${p.price} (остаток: ${p.stock})`).join("\n") : "Товаров пока нет.";
       await send(message.chat.id, summary);
+      return reply(res, { ok: true });
+    }
+    const commandMatch = text.match(/^\/(edit|delete)\\s+([0-9a-f-]{36})$/i);
+    if (commandMatch) {
+      const [, command, id] = commandMatch;
+      const product = await getProduct(id);
+      if (!product) await send(message.chat.id, "Товар не найден. Используй /products, чтобы получить список.");
+      else if (command.toLowerCase() === "edit") {
+        await saveDraft(userId, "edit_field", { productId: id });
+        await telegram("sendMessage", { chat_id: message.chat.id, text: `Выбери поле для «${product.name}»:`, reply_markup: { inline_keyboard: [
+          [{ text: "Название", callback_data: `field:name:${id}` }, { text: "Цена", callback_data: `field:price:${id}` }],
+          [{ text: "Остаток", callback_data: `field:stock:${id}` }, { text: "Категория", callback_data: `field:category:${id}` }],
+          [{ text: "Описание", callback_data: `field:description:${id}` }, { text: "Фото", callback_data: `field:images:${id}` }]
+        ] } });
+      } else {
+        await telegram("sendMessage", { chat_id: message.chat.id, text: `Удалить «${product.name}» без возможности восстановления?`, reply_markup: { inline_keyboard: [[{ text: "Да, удалить", callback_data: `delete:${id}` }, { text: "Отмена", callback_data: "canceldelete" }]] } });
+      }
       return reply(res, { ok: true });
     }
     if (text === "/add") {
@@ -190,6 +319,45 @@ export default async function handler(req, res) {
     const current = await getDraft(userId);
     if (!current) {
       await send(message.chat.id, "Выбери команду /add, /products или /help.");
+      return reply(res, { ok: true });
+    }
+    if (current.step?.startsWith("edit_")) {
+      const draft = { ...(current.draft || {}) };
+      const field = current.step.slice(5);
+      if (field === "images") {
+        if (text === "/done") {
+          if (!draft.images?.length) { await send(message.chat.id, "Отправь фото или /cancel."); return reply(res, { ok: true }); }
+          await patchProduct(draft.productId, { images: draft.images });
+          await clearDraft(userId);
+          await send(message.chat.id, `✅ Галерея товара обновлена: ${draft.images.length} фото.`);
+          return reply(res, { ok: true });
+        }
+        let imageUrl = "";
+        try {
+          if (message.photo?.length) imageUrl = await saveTelegramPhoto(message.photo);
+          else if (message.document?.mime_type?.startsWith("image/")) imageUrl = await saveTelegramPhoto([{ file_id: message.document.file_id, file_size: message.document.file_size }]);
+          else if (/^https:\\/\\//i.test(text)) imageUrl = await saveImageFromUrl(text);
+          else { await send(message.chat.id, "Отправь фото/HTTPS-ссылку или /done."); return reply(res, { ok: true }); }
+        } catch (error) { await send(message.chat.id, "Не удалось сохранить фото: " + error.message); return reply(res, { ok: true }); }
+        draft.images = [...(draft.images || []), imageUrl].slice(0, 10);
+        await saveDraft(userId, current.step, draft);
+        await send(message.chat.id, `Фото добавлено (${draft.images.length}/10). Отправь ещё или /done.`);
+        return reply(res, { ok: true });
+      }
+      if (typeof message.text !== "string") { await send(message.chat.id, "Отправь новое значение текстом."); return reply(res, { ok: true }); }
+      const value = text === "—" ? "" : text;
+      let patch = {};
+      if (field === "price" || field === "stock") {
+        const number = Number(value);
+        if (!Number.isFinite(number) || number < 0 || (field === "stock" && !Number.isInteger(number))) {
+          await send(message.chat.id, field === "price" ? "Цена должна быть числом ≥ 0." : "Остаток должен быть целым числом ≥ 0.");
+          return reply(res, { ok: true });
+        }
+        patch[field] = number;
+      } else patch[field] = value.slice(0, field === "description" ? 5000 : 180);
+      await patchProduct(draft.productId, patch);
+      await clearDraft(userId);
+      await send(message.chat.id, "✅ Товар обновлён.");
       return reply(res, { ok: true });
     }
     const index = STEPS.findIndex(([key]) => key === current.step);
@@ -204,7 +372,7 @@ export default async function handler(req, res) {
     if (key === "image") {
       if (message.photo?.length) {
         try {
-          draft.images = [await saveTelegramPhoto(message.photo)];
+          draft.images = [...(draft.images || []), await saveTelegramPhoto(message.photo)].slice(0, 10);
         } catch (error) {
           console.error("Telegram product photo error:", error);
           await send(message.chat.id, "Не удалось сохранить фото. Попробуй отправить изображение как фото (не файл) размером до 8 МБ ещё раз, или отправь HTTPS-ссылку.");
@@ -212,7 +380,7 @@ export default async function handler(req, res) {
         }
       } else if (message.document?.mime_type?.startsWith("image/")) {
         try {
-          draft.images = [await saveTelegramPhoto([{ file_id: message.document.file_id, file_unique_id: message.document.file_unique_id, file_size: message.document.file_size }])];
+          draft.images = [...(draft.images || []), await saveTelegramPhoto([{ file_id: message.document.file_id, file_unique_id: message.document.file_unique_id, file_size: message.document.file_size }])].slice(0, 10);
         } catch (error) {
           console.error("Telegram product image document error:", error);
           await send(message.chat.id, "Не удалось сохранить изображение. Попробуй отправить его как фото размером до 8 МБ.");
@@ -226,7 +394,7 @@ export default async function handler(req, res) {
         }
         if (value) {
           try {
-            draft.images = [await saveImageFromUrl(value)];
+            draft.images = [...(draft.images || []), await saveImageFromUrl(value)].slice(0, 10);
           } catch (error) {
             console.error("Telegram product image URL error:", error);
             await send(message.chat.id, "Не удалось сохранить картинку по ссылке. " + (error.message || "Проверь ссылку и попробуй ещё раз."));
@@ -254,10 +422,15 @@ export default async function handler(req, res) {
       }
     }
 
+    if (key === "image" && text !== "/done" && (message.photo?.length || message.document?.mime_type?.startsWith("image/") || /^https:\\/\\//i.test(text))) {
+      await saveDraft(userId, "image", draft);
+      await send(message.chat.id, `📸 Фото сохранено (${draft.images?.length || 0}/10). Отправь ещё одно фото или /done для завершения.`);
+      return reply(res, { ok: true });
+    }
     if (index < STEPS.length - 1) {
       const [nextKey, prompt] = STEPS[index + 1];
       await saveDraft(userId, nextKey, draft);
-      await send(message.chat.id, prompt);
+      await send(message.chat.id, nextKey === "image" ? prompt + "\\nМожно отправить до 10 фото по одному. После всех фото напиши /done." : prompt);
       return reply(res, { ok: true });
     }
 
