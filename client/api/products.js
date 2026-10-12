@@ -19,13 +19,15 @@ async function supabase(path) {
   return response.json();
 }
 
-const normalizeProduct = (p) => ({
-  ...p,
-  _id: p.id,
-  oldPrice: p.old_price,
-  createdAt: p.created_at,
-  updatedAt: p.updated_at
-});
+function normalizeProduct(product) {
+  return {
+    ...product,
+    _id: product.id,
+    oldPrice: product.old_price,
+    createdAt: product.created_at,
+    updatedAt: product.updated_at
+  };
+}
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -34,20 +36,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Detail requests are rewritten from /api/products/:id to this function
-    // with ?id=:id. Keep the same endpoint for catalog and detail data.
+    // A direct product URL is rewritten by vercel.json to /api/products?id=:id.
+    // Handle this before catalog filters so a product page receives one object,
+    // not the entire catalog array.
     const rawId = req.query?.id;
-    const id = Array.isArray(rawId) ? rawId[0] : rawId;
-    if (id) {
+    const id = (Array.isArray(rawId) ? rawId[0] : rawId);
+    if (typeof id === "string" && id.trim()) {
       const params = new URLSearchParams({
         select: "*",
-        id: `eq.${String(id)}`,
+        id: `eq.${id.trim()}`,
         is_active: "eq.true",
         limit: "1"
       });
       const rows = await supabase(`products?${params.toString()}`);
       if (!rows.length) {
-        res.setHeader("Cache-Control", "no-store");
         return res.status(404).json({ message: "Товар не найден" });
       }
       res.setHeader("Cache-Control", "s-maxage=15, stale-while-revalidate=45");
