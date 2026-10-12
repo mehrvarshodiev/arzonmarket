@@ -1,65 +1,123 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Heart, Images, ShoppingCart, Check } from 'lucide-react';
+import { Heart, ShoppingCart, Minus, Plus, Star } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
-const money = n => new Intl.NumberFormat('ru-RU').format(n || 0);
+const money = n => new Intl.NumberFormat('ru-RU').format(Number(n) || 0);
 const placeholder = 'https://placehold.co/600x600/f4f5f7/8a95a5?text=ArzonMarket';
 
 export default function ProductCard({ product }) {
-  const { add } = useCart();
+  const { items = [], add, setQuantity } = useCart();
   const [activeImage, setActiveImage] = useState(0);
-  const [added, setAdded] = useState(false);
-  const images = Array.isArray(product.images) ? [...new Set(product.images.filter(x => typeof x === 'string' && x.trim()))] : [];
+  const [favorite, setFavorite] = useState(false);
+  const [selectedColor, setSelectedColor] = useState(null);
+  const [touchStart, setTouchStart] = useState(null);
+
+  // Keep the existing product shape, while accepting gallery/color variants when present.
+  const colors = Array.isArray(product.colors) ? product.colors : [];
+  const images = useMemo(() => {
+    const source = selectedColor && typeof selectedColor === 'object'
+      ? [...(Array.isArray(selectedColor.images) ? selectedColor.images : []), selectedColor.image].filter(Boolean)
+      : [];
+    const base = Array.isArray(product.images) ? product.images : [];
+    return [...new Set([...source, ...base].filter(x => typeof x === 'string' && x.trim()))];
+  }, [product.images, selectedColor]);
   const gallery = images.length ? images : [placeholder];
-  const image = gallery[Math.min(activeImage, gallery.length - 1)];
-  const discount = product.oldPrice > product.price ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
+  const currentImage = gallery[Math.min(activeImage, gallery.length - 1)];
+  const price = selectedColor && typeof selectedColor === 'object' && selectedColor.price != null
+    ? Number(selectedColor.price) : Number(product.price) || 0;
+  const oldPrice = selectedColor && typeof selectedColor === 'object' && selectedColor.oldPrice != null
+    ? Number(selectedColor.oldPrice) : Number(product.oldPrice) || 0;
+  const discount = oldPrice > price ? Math.round((1 - price / oldPrice) * 100) : 0;
+  const cartKey = product._id + '::' + (selectedColor ? (typeof selectedColor === 'string' ? selectedColor : selectedColor.name || '') : '');
+  const cartItem = items.find(item => (item._cartKey || item._id) === cartKey ||
+    (!selectedColor && !item.selectedColor && item._id === product._id));
+  const quantity = cartItem?.quantity || 0;
 
-  const addToCart = event => {
-    event.preventDefault();
-    event.stopPropagation();
-    add(product);
-    setAdded(true);
-    window.setTimeout(() => setAdded(false), 1600);
+  const stepImage = delta => setActiveImage(index => (index + delta + gallery.length) % gallery.length);
+  const handleHover = event => {
+    if (gallery.length < 2 || window.matchMedia('(hover: none)').matches) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const ratio = (event.clientX - rect.left) / rect.width;
+    const index = Math.min(gallery.length - 1, Math.floor(ratio * gallery.length));
+    setActiveImage(index);
   };
-
-  const changeImage = (event, delta) => {
+  const addOne = event => {
     event.preventDefault();
     event.stopPropagation();
-    setActiveImage(index => (index + delta + gallery.length) % gallery.length);
+    add({ ...product, price, oldPrice, images: gallery, selectedColor: selectedColor ? (typeof selectedColor === 'string' ? selectedColor : selectedColor.name || '') : '' });
+  };
+  const adjust = (event, delta) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (quantity === 0 && delta > 0) addOne(event);
+    else if (cartItem) setQuantity(cartItem._cartKey || cartItem._id, quantity + delta);
+  };
+  const swipeEnd = event => {
+    if (touchStart == null) return;
+    const distance = event.changedTouches[0].clientX - touchStart;
+    if (Math.abs(distance) > 35) stepImage(distance < 0 ? 1 : -1);
+    setTouchStart(null);
   };
 
   return (
-    <article className="group relative flex min-w-0 flex-col overflow-hidden rounded-[22px] border border-white/[.07] bg-[#151922] p-2.5 shadow-[0_8px_30px_rgba(0,0,0,.12)] transition duration-300 hover:-translate-y-1 hover:border-accent/30 hover:shadow-[0_18px_45px_rgba(0,0,0,.25)] sm:rounded-[26px] sm:p-3">
+    <article className="group relative flex min-w-0 flex-col rounded-[18px] bg-white p-2 text-slate-900 shadow-[0_2px_12px_rgba(15,23,42,.06)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(15,23,42,.13)] sm:rounded-[22px] sm:p-3">
       <div className="relative">
-        <Link to={`/product/${product._id}`} aria-label={`Открыть ${product.name}`} className="relative block aspect-[.88] overflow-hidden rounded-[17px] bg-[#f4f5f7] sm:aspect-square sm:rounded-[20px]">
-          <img key={image} src={image} alt={product.name} loading="lazy" className="h-full w-full object-contain p-3 transition duration-500 group-hover:scale-[1.035] sm:p-5" onError={e => { e.currentTarget.src = placeholder; }} />
-          {discount > 0 && <span className="absolute left-2.5 top-2.5 rounded-lg bg-[#ff4778] px-2 py-1 text-[10px] font-black tracking-wide text-white shadow-sm sm:left-3 sm:top-3 sm:text-xs">−{discount}%</span>}
-          {product.featured && <span className="absolute bottom-2.5 left-2.5 rounded-lg bg-[#b7f36b] px-2 py-1 text-[9px] font-black uppercase tracking-wide text-[#14180e] sm:bottom-3 sm:left-3 sm:text-[10px]">Хит</span>}
-          {gallery.length > 1 && <span className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 rounded-lg bg-white/90 px-2 py-1 text-[10px] font-bold text-slate-700 shadow-sm sm:bottom-3 sm:right-3 sm:text-xs"><Images size={12}/>{gallery.length}</span>}
+        <Link to={`/product/${product._id}`} aria-label={`Открыть ${product.name}`}
+          onMouseMove={handleHover}
+          onTouchStart={event => setTouchStart(event.touches[0].clientX)}
+          onTouchEnd={swipeEnd}
+          className="relative block aspect-[.82] overflow-hidden rounded-[14px] bg-[#f5f5f7] sm:aspect-[.9] sm:rounded-[18px]">
+          <img key={currentImage} src={currentImage} alt={product.name} loading="lazy"
+            className="h-full w-full select-none object-contain p-2 transition duration-300 sm:p-4"
+            onError={event => { event.currentTarget.src = placeholder; }} />
+          {discount > 0 && <span className="absolute bottom-2 left-2 rounded-md bg-[#e83d78] px-2 py-1 text-[10px] font-extrabold text-white sm:bottom-3 sm:left-3 sm:text-xs">−{discount}%</span>}
+          {product.featured && <span className="absolute left-2 top-2 rounded-md bg-[#6d28d9] px-2 py-1 text-[9px] font-bold text-white sm:left-3 sm:top-3 sm:text-[10px]">ХИТ</span>}
+          {gallery.length > 1 && <div className="absolute bottom-2 left-1/2 flex max-w-[60%] -translate-x-1/2 gap-1">{gallery.slice(0, 7).map((src, i) =>
+            <span key={src + i} className={`h-1 rounded-full transition-all ${i === activeImage ? 'w-4 bg-[#7c3aed]' : 'w-2 bg-slate-300/90'}`} />)}</div>}
         </Link>
-        {gallery.length > 1 && <>
-          <button type="button" onClick={e => changeImage(e, -1)} aria-label="Предыдущее фото" className="absolute left-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-slate-800 opacity-0 shadow-md transition hover:scale-105 group-hover:opacity-100 focus:opacity-100 sm:left-3 sm:h-8 sm:w-8"><ArrowLeft size={15}/></button>
-          <button type="button" onClick={e => changeImage(e, 1)} aria-label="Следующее фото" className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-slate-800 opacity-0 shadow-md transition hover:scale-105 group-hover:opacity-100 focus:opacity-100 sm:right-3 sm:h-8 sm:w-8"><ArrowRight size={15}/></button>
-          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1 rounded-full bg-black/20 px-1.5 py-1 backdrop-blur-sm">{gallery.slice(0, 6).map((src, i) => <span key={src + i} className={`h-1 rounded-full transition-all ${i === activeImage ? 'w-3 bg-white' : 'w-1 bg-white/60'}`} />)}</div>
-        </>}
+        <button type="button" onClick={() => setFavorite(value => !value)} aria-label={favorite ? 'Убрать из избранного' : 'В избранное'}
+          className={`absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-white/95 shadow-sm transition hover:scale-105 sm:right-3 sm:top-3 sm:h-9 sm:w-9 ${favorite ? 'text-[#e83d78]' : 'text-slate-500'}`}>
+          <Heart size={17} fill={favorite ? 'currentColor' : 'none'} />
+        </button>
+        {gallery.length > 1 && <span className="pointer-events-none absolute right-2 bottom-2 rounded-full bg-white/90 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600 sm:right-3 sm:bottom-3">{activeImage + 1}/{gallery.length}</span>}
       </div>
 
-      <div className="flex flex-1 flex-col px-1 pb-1 pt-3 sm:px-1.5 sm:pt-4">
-        <div className="mb-1.5 flex min-w-0 items-center justify-between gap-2">
-          <span className="truncate text-[10px] font-extrabold uppercase tracking-[.12em] text-accent sm:text-[11px]">{product.brand || 'ArzonMarket'}</span>
-          {gallery.length > 1 && <span className="shrink-0 text-[10px] text-slate-500">{activeImage + 1}/{gallery.length}</span>}
+      <div className="flex flex-1 flex-col px-0.5 pb-0.5 pt-2.5 sm:px-1 sm:pt-3">
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-[15px] font-extrabold leading-tight tracking-tight text-[#6d28d9] sm:text-lg">{money(price)} <span className="text-[10px] font-bold">сум</span></span>
+          {discount > 0 && <span className="truncate text-[10px] text-slate-400 line-through sm:text-xs">{money(oldPrice)}</span>}
         </div>
-        <Link to={`/product/${product._id}`} className="line-clamp-2 min-h-[2.7rem] text-[13px] font-semibold leading-[1.35rem] text-slate-100 transition hover:text-accent sm:min-h-[3rem] sm:text-sm sm:leading-6">{product.name}</Link>
-        {Array.isArray(product.colors) && product.colors.length > 0 && <div className="mt-2 flex items-center gap-1.5"><span className="flex -space-x-1">{product.colors.slice(0, 4).map((c, i) => <span key={typeof c === 'string' ? c : c.name || i} className="h-3 w-3 rounded-full border border-[#151922] bg-slate-400" style={{ backgroundColor: typeof c === 'object' ? c.hex : undefined }} />)}</span><span className="truncate text-[10px] text-slate-500 sm:text-xs">{product.colors.length} цвета</span></div>}
-        <div className="mt-auto flex items-end justify-between gap-2 pt-3 sm:pt-4">
-          <div className="min-w-0">
-            <div className="whitespace-nowrap text-[15px] font-black tracking-tight text-white sm:text-lg">{money(product.price)} <span className="text-[10px] font-semibold text-slate-400 sm:text-xs">сум</span></div>
-            {discount > 0 && <div className="mt-0.5 whitespace-nowrap text-[10px] text-slate-500 line-through sm:text-xs">{money(product.oldPrice)} сум</div>}
-          </div>
-          <button type="button" onClick={addToCart} aria-label="Добавить в корзину" className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl transition duration-200 sm:h-10 sm:w-10 ${added ? 'bg-[#b7f36b] text-[#12160c]' : 'bg-accent text-ink hover:scale-105 hover:shadow-[0_6px_20px_rgba(183,243,107,.2)]'}`}>{added ? <Check size={17}/> : <ShoppingCart size={17}/>}</button>
+        <span className="mt-1 truncate text-[10px] font-bold uppercase tracking-wide text-slate-500 sm:text-[11px]">{product.brand || 'ArzonMarket'}</span>
+        <Link to={`/product/${product._id}`} className="mt-0.5 line-clamp-2 min-h-[2.5rem] text-[12px] leading-5 text-slate-800 hover:text-[#6d28d9] sm:min-h-[3rem] sm:text-sm sm:leading-6">{product.name}</Link>
+
+        <div className="mt-1.5 flex items-center gap-1 text-[10px] text-slate-500 sm:text-xs">
+          <Star size={12} fill="#f5b82e" stroke="#f5b82e" />
+          <span className="font-bold text-slate-700">{product.rating != null ? Number(product.rating).toFixed(1) : '—'}</span>
+          {product.reviewCount != null && <span>· {money(product.reviewCount)} оценок</span>}
         </div>
-        {added && <p role="status" className="mt-2 text-[11px] font-semibold text-accent">Добавлено в корзину</p>}
+
+        {colors.length > 0 && <div className="mt-2 flex min-h-6 items-center gap-1.5" aria-label="Выбор цвета">
+          {colors.slice(0, 6).map((color, index) => {
+            const name = typeof color === 'string' ? color : color.name || `Цвет ${index + 1}`;
+            const hex = typeof color === 'object' ? color.hex || color.color : undefined;
+            const selected = selectedColor === color;
+            return <button key={name + index} type="button" title={name} aria-label={name} onClick={() => { setSelectedColor(color); setActiveImage(0); }}
+              className={`h-4 w-4 rounded-full border-2 transition hover:scale-110 sm:h-[18px] sm:w-[18px] ${selected ? 'border-[#7c3aed] ring-1 ring-[#7c3aed]/30' : 'border-white shadow-[0_0_0_1px_#d1d5db]'}`}
+              style={{ backgroundColor: hex || (typeof color === 'string' && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(color) ? color : '#d1d5db') }} />;
+          })}
+          <span className="ml-0.5 truncate text-[9px] text-slate-500 sm:text-[10px]">{selectedColor ? (typeof selectedColor === 'string' ? selectedColor : selectedColor.name || 'Выбран цвет') : `${colors.length} цвета`}</span>
+        </div>}
+
+        <div className="mt-auto pt-2.5">
+          {quantity > 0 ? <div className="flex h-9 items-center justify-between rounded-xl bg-[#f1eafe] p-1 text-[#6d28d9] sm:h-10">
+            <button type="button" onClick={event => adjust(event, -1)} aria-label="Уменьшить количество" className="grid h-7 w-8 place-items-center rounded-lg bg-white hover:bg-purple-50 sm:h-8"><Minus size={15}/></button>
+            <span className="text-sm font-extrabold tabular-nums">{quantity}</span>
+            <button type="button" onClick={event => adjust(event, 1)} aria-label="Увеличить количество" className="grid h-7 w-8 place-items-center rounded-lg bg-white hover:bg-purple-50 sm:h-8"><Plus size={15}/></button>
+          </div> : <button type="button" onClick={addOne} className="flex h-9 w-full items-center justify-center gap-2 rounded-xl bg-[#7c3aed] text-xs font-bold text-white transition hover:bg-[#6d28d9] active:scale-[.98] sm:h-10 sm:text-sm">
+            <ShoppingCart size={15}/> В корзину
+          </button>}
+        </div>
       </div>
     </article>
   );
