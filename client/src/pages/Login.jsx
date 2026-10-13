@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { Smartphone, UserRound, Phone, LoaderCircle, Send, ShieldCheck, ShoppingBag, CircleCheck, ArrowRight, LogOut } from 'lucide-react';
+import { Smartphone, UserRound, Phone, LoaderCircle, Send, ShoppingBag, LogOut } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import parsePhoneNumber, { getCountryCallingCode } from 'libphonenumber-js/max';
@@ -91,14 +91,12 @@ export default function Login() {
     setBusy(true);try{if(!sent){await requestCode(fullPhone);setSent(true);}else{await verifyCode(fullPhone,code,normalizedName);nav(location.state?.from?.pathname||'/',{replace:true});}}
     catch(err){setError(err.code==='API_NOT_CONFIGURED'?'Сервис входа ещё не подключён к серверу. Попробуйте позже.':err.code==='API_INVALID_RESPONSE'?'Сервер API настроен неправильно. Обратитесь к администратору.':err.response?.data?.message||'Не удалось выполнить вход. Проверьте подключение и попробуйте снова.');}finally{setBusy(false);}
   };
-  return <main className="container-shell grid min-h-[76vh] place-items-center py-8 sm:py-12"><section className="auth-card relative w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/10 bg-panel p-6 shadow-2xl shadow-black/20 sm:p-9">
-    <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-accent/10 blur-3xl" />
-    <div className="relative">
-      <div className="flex items-center gap-3"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent text-ink shadow-lg shadow-lime-400/10"><Smartphone size={23}/></span><div><p className="text-xs font-bold uppercase tracking-[.22em] text-accent">ArzonMarket</p><p className="mt-1 text-xs text-slate-400">Техника по разумным ценам</p></div></div>
-      <h1 className="mt-7 text-3xl font-black tracking-tight text-white sm:text-4xl">{isAuthenticated?'Рады вас видеть!':'Войдите в свой аккаунт'}</h1>
-      <p className="mt-3 max-w-sm text-sm leading-6 text-slate-400">{isAuthenticated?'Ваш аккаунт готов — продолжайте покупки и оформляйте заказы.':'Войдите через Telegram за пару секунд или используйте номер телефона.'}</p>
-    {isAuthenticated?<div className="mt-7 space-y-4"><div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-black/10 p-4"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-accent/15 text-accent"><UserRound size={23}/></span><div className="min-w-0 flex-1"><p className="truncate font-bold text-white">{user?.name||'Покупатель'}</p><p className="mt-1 truncate text-sm text-slate-400">{user?.phone|| (user?.telegramId ? 'Аккаунт Telegram подключён' : 'Аккаунт ArzonMarket')}</p></div><CircleCheck className="shrink-0 text-accent" size={21}/></div>
-      <div className="grid gap-3 sm:grid-cols-2"><Link to="/catalog" className="btn-primary flex items-center justify-center gap-2"><ShoppingBag size={17}/> Перейти в каталог <ArrowRight size={16}/></Link><Link to="/cart" className="btn-secondary flex items-center justify-center gap-2"><ShoppingBag size={17}/> Моя корзина</Link></div>
+  return <main className="container-shell grid min-h-[70vh] place-items-center py-12"><section className="auth-card w-full max-w-md rounded-3xl border border-white/10 bg-panel p-6 sm:p-8">
+    <span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent text-ink"><Smartphone/></span>
+    <h1 className="mt-5 text-3xl font-black text-white">{isAuthenticated?'Ваш профиль':'Войти в ArzonMarket'}</h1>
+    
+    {isAuthenticated?<p className="mt-3 text-slate-400">{user?.name||user?.phone||'Вы вошли в аккаунт.'}</p>
+      <Link to="/catalog" className="btn-primary mt-5 w-full"><ShoppingBag size={17}/> Перейти в каталог</Link><Link to="/cart" className="btn-secondary mt-3 w-full"><ShoppingBag size={17}/> Моя корзина</Link>
       {user?.role==='admin'&&<Link to="/admin" className="btn-secondary flex w-full items-center justify-center gap-2"><ShieldCheck size={17}/> Панель администратора</Link>}
       <button onClick={()=>{logout();setSent(false);setCode('');}} className="mt-2 flex w-full items-center justify-center gap-2 py-2 text-sm text-slate-500 transition hover:text-red-300"><LogOut size={16}/> Выйти из аккаунта</button></div>:<form onSubmit={submit} className="mt-7 space-y-4" noValidate>
       <label className="block"><span className="field-label"><UserRound size={14}/> Ваше имя</span><input className={`field ${touched.name&&nameError?'field-invalid':''}`} type="text" autoComplete="name" placeholder="Введите ваше имя" value={name} onChange={e=>setName(e.target.value.slice(0,80))} onBlur={()=>setTouched(t=>({...t,name:true}))} required maxLength={80} disabled={sent}/>{touched.name&&nameError&&<span className="field-error">{nameError}</span>}</label>
@@ -110,15 +108,12 @@ export default function Login() {
       {error&&<p role="alert" className="rounded-xl bg-red-400/10 p-3 text-sm text-red-600">{error}</p>}
       <button onClick={() => setError('')} disabled={busy||(sent&&code.length!==4)} className="btn-primary w-full">{busy?<><LoaderCircle size={17} className="animate-spin"/> Подождите...</>:sent?'Подтвердить и создать профиль':'Получить код подтверждения'}</button>
       {sent&&<button type="button" onClick={()=>{setSent(false);setCode('');setError('');}} className="w-full text-sm text-slate-400">Изменить данные</button>}
-      <div className="telegram-login-section rounded-2xl border border-white/10 bg-black/10 p-4">
-        <div className="telegram-divider"><span>или быстро войдите</span></div>
+      <div className="telegram-login-section mt-5">
+        <div className="telegram-divider"><span>или</span></div>
         {telegramBotUsername
-          ? <div ref={telegramWidgetRef} className="telegram-widget-slot flex min-h-11 justify-center" aria-label="Войти через Telegram" />
-          : <button type="button" disabled className="telegram-login-button flex w-full cursor-not-allowed items-center justify-center gap-2 opacity-70" title="Telegram-вход пока не настроен"><Send size={18}/> {telegramConfigReady ? 'Telegram-вход временно недоступен' : 'Подключаем Telegram…'}</button>}
-        <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-slate-500"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-accent"/> Безопасный вход: данные Telegram проверяются сервером ArzonMarket.</p>
+          ? <div ref={telegramWidgetRef} className="telegram-widget-slot" aria-label="Войти через Telegram" />
+          : <button type="button" disabled className="telegram-login-button" title="Telegram-вход пока не настроен"><Send size={18}/> {telegramConfigReady ? 'Войти через Telegram — временно недоступно' : 'Подключаем Telegram…'}</button>}
       </div>
-      <p className="text-center text-xs leading-5 text-slate-500">Продолжая, вы соглашаетесь использовать аккаунт для оформления и отслеживания заказов.</p>
     </form>}
-    </div>
   </section></main>;
 }
