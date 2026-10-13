@@ -13,6 +13,7 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [waitingForTelegram, setWaitingForTelegram] = useState(false);
+  const [telegramLink, setTelegramLink] = useState('');
   const cancelled = useRef(false);
 
   useEffect(() => () => { cancelled.current = true; }, []);
@@ -21,12 +22,13 @@ export default function Login() {
     setBusy(true);
     setError('');
     setWaitingForTelegram(false);
+    setTelegramLink('');
     cancelled.current = false;
     try {
       const { data: challenge } = await api.post('/auth/telegram/challenge');
       if (!challenge?.deepLink || !challenge?.challengeId || !challenge?.pollToken) throw new Error('Не удалось создать ссылку входа.');
       setWaitingForTelegram(true);
-      window.open(challenge.deepLink, '_blank', 'noopener,noreferrer');
+      setTelegramLink(challenge.deepLink);
       const deadline = Date.now() + 5 * 60 * 1000;
       while (!cancelled.current && Date.now() < deadline) {
         await wait(2000);
@@ -74,7 +76,7 @@ export default function Login() {
               {busy ? <LoaderCircle size={18} className="animate-spin" /> : <Send size={18} />}
               {busy ? 'Ожидаем подтверждение в Telegram…' : 'Войти через Telegram'}
             </button>
-            {waitingForTelegram && <p className="flex items-center justify-center gap-2 text-sm text-slate-400"><CheckCircle2 size={16} /> Откройте существующий бот и нажмите Start. Ссылка действует 5 минут.</p>}
+            {waitingForTelegram && <div className="space-y-2 rounded-xl bg-white/5 p-3 text-center"><p className="flex items-center justify-center gap-2 text-sm text-slate-400"><CheckCircle2 size={16} /> Ссылка действует 5 минут. Откройте бот и нажмите Start.</p><a href={telegramLink} target="_blank" rel="noreferrer" className="btn-secondary w-full"><Send size={17} /> Открыть Telegram</a></div>}
             <p className="text-center text-xs leading-5 text-slate-500">Роль определяется сервером. Покупатель получает роль customer; роль admin выдаётся только Telegram ID из TELEGRAM_ADMIN_IDS.</p>
           </div>
         )}
