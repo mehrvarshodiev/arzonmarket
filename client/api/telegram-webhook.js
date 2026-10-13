@@ -1,7 +1,9 @@
+import { createHash } from "node:crypto";
+
 const reply = (res, data, status = 200) => res.status(status).json(data);
 
 const env = (name) => globalThis.process?.env?.[name];
-const cryptoHash = async (value) => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(value)))), b => b.toString(16).padStart(2, "0")).join("");
+const cryptoHash = (value) => createHash("sha256").update(String(value)).digest("hex");
 
 async function supabase(path, options = {}) {
   const base = env("SUPABASE_URL");
@@ -185,7 +187,7 @@ export default async function handler(req, res) {
     const incomingText = typeof message?.text === "string" ? message.text.trim() : "";
     const loginStart = incomingText.match(/^\/start\s+login_([a-f0-9]{64})$/i);
     if (message && loginStart) {
-      const challengeHash = await cryptoHash(loginStart[1]);
+      const challengeHash = cryptoHash(loginStart[1]);
       const challenges = await supabase(`telegram_login_challenges?token_hash=eq.${challengeHash}&status=eq.pending&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=id&limit=1`);
       if (!challenges?.[0]) {
         await send(chatId, "Эта ссылка входа недействительна или устарела. Вернитесь на сайт и начните вход заново.");
