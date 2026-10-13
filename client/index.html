@@ -19,6 +19,27 @@
         } catch (_) {}
       })();
     </script>
+    <script>
+      (function () {
+        var timer = window.setTimeout(showStartupError, 12000);
+        function showStartupError(reason) {
+          var root = document.getElementById('root');
+          if (!root || !root.querySelector('.boot-loader')) { window.clearTimeout(timer); return; }
+          window.clearTimeout(timer);
+          root.innerHTML = '<main class="boot-loader" role="alert" style="padding:24px;text-align:center"><div class="boot-brand"><span class="boot-icon">!</span><span>arzon<span class="boot-accent">market</span></span></div><p class="boot-message" style="max-width:320px;line-height:1.7">Не удалось запустить магазин. Проверьте подключение к интернету и попробуйте обновить страницу.</p><button id="boot-retry" type="button" style="border:0;border-radius:12px;padding:12px 18px;background:#b7f36b;color:#10140b;font-weight:800">Перезагрузить</button><span class="boot-caption">Технологии ближе</span></main>';
+          var retry = document.getElementById('boot-retry');
+          if (retry) retry.addEventListener('click', function () { window.location.reload(); });
+          if (reason) console.error('ArzonMarket startup failed:', reason);
+        }
+        window.addEventListener('error', function (event) {
+          if (event.target && event.target.tagName === 'SCRIPT') showStartupError(event.message || 'Script failed to load');
+          else if (event.message) showStartupError(event.message);
+        }, true);
+        window.addEventListener('unhandledrejection', function (event) {
+          showStartupError(event.reason && (event.reason.message || String(event.reason)));
+        });
+      })();
+    </script>
     <style>
       :root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:#080a0f;color:#f8fafc}
       :root[data-theme="light"]{color-scheme:light;background:#f5f7fa;color:#182230}
