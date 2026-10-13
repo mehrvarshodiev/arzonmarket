@@ -52,12 +52,12 @@ async function supabase(path, options = {}) {
   return text ? JSON.parse(text) : [];
 }
 
-async function telegram(method) {
-  const token = env("TELEGRAM_BOT_TOKEN");
-  if (!token) throw new Error("TELEGRAM_BOT_TOKEN is not configured");
+async function customerTelegram(method) {
+  const token = env("TELEGRAM_CUSTOMER_BOT_TOKEN");
+  if (!token) throw new Error("TELEGRAM_CUSTOMER_BOT_TOKEN is not configured");
   const response = await fetch(`https://api.telegram.org/bot${token}/${method}`);
   const data = await response.json();
-  if (!response.ok || !data.ok || !data.result?.username) throw new Error("Telegram bot configuration could not be loaded");
+  if (!response.ok || !data.ok || !data.result?.username) throw new Error("Customer Telegram bot configuration could not be loaded");
   return data.result;
 }
 
@@ -69,21 +69,30 @@ export default async function handler(req, res) {
 
   if (req.method === "GET" && route === "telegram/config") {
     try {
-      const configured = String(env("TELEGRAM_BOT_USERNAME") || "").trim().replace(/^@/, "");
-      if (configured) return reply(res, 200, { username: configured });
-      const bot = await telegram("getMe");
+      const configured = String(env("TELEGRAM_CUSTOMER_BOT_USERNAME") || "").trim().replace(/^@/, "");
+      if (configured) {
+        if (!env("TELEGRAM_CUSTOMER_BOT_TOKEN")) {
+          return reply(res, 503, { message: "Вход покупателей пока не настроен: добавьте TELEGRAM_CUSTOMER_BOT_TOKEN в Vercel. Админ-бот для входа не используется." });
+        }
+        return reply(res, 200, { username: configured });
+      }
+      const bot = await customerTelegram("getMe");
       return reply(res, 200, { username: bot.username });
     } catch (error) {
-      console.error("Telegram login config:", error.message);
-      return reply(res, 503, { message: "Telegram-вход пока не настроен. Проверьте токен бота в Vercel." });
+      console.error("Customer Telegram login config:", error.message);
+      return reply(res, 503, { message: "Создайте отдельного Telegram-бота для покупателей и добавьте TELEGRAM_CUSTOMER_BOT_TOKEN и TELEGRAM_CUSTOMER_BOT_USERNAME в Vercel. Админ-бот не используется для входа." });
     }
   }
 
   if (req.method === "POST" && route === "telegram") {
     try {
       const data = req.body || {};
-      if (!verifyTelegramLogin(data, env("TELEGRAM_BOT_TOKEN"))) {
-        return reply(res, 401, { message: "Данные Telegram не прошли проверку. Обновите страницу и попробуйте снова." });
+      const customerBotToken = env("TELEGRAM_CUSTOMER_BOT_TOKEN");
+      if (!customerBotToken) {
+        return reply(res, 503, { message: "Вход покупателей ещё не настроен. Нужен отдельный Telegram-бот для входа." });
+      }
+      if (!verifyTelegramLogin(data, customerBotToken)) {
+        return reply(res, 401, { message: "Данные Telegram не прошли проверку для бота входа покупателей. Обновите страницу и попробуйте снова." });
       }
       const telegramId = String(data.id || "");
       if (!/^\d{1,20}$/.test(telegramId)) return reply(res, 400, { message: "Telegram вернул некорректный идентификатор." });
@@ -101,7 +110,7 @@ export default async function handler(req, res) {
         const created = await supabase("users?select=id,phone,telegram_id,name,role", {
           method: "POST",
           headers: { Prefer: "return=representation" },
-          body: JSON.stringify({ telegram_id: telegramId, name })
+          body: JSON.stringify({ telegram_id: telegramId, name, role: "customer" })
         });
         user = created[0];
       }
