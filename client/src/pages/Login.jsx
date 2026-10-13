@@ -138,6 +138,10 @@ export default function Login() {
                 {busy ? 'Ожидаем подтверждение в Telegram…' : 'Войти через Telegram'}
               </button>
             )}
+            {botUsername && <button type="button" disabled={busy} onClick={startTelegramLogin} className="telegram-login-button w-full">
+              {busy ? <LoaderCircle size={18} className="animate-spin" /> : <Send size={18} />}
+              {busy ? 'Ожидаем подтверждение в Telegram…' : 'Войти через Telegram-бота'}
+            </button>}
             {busy && botUsername && <p className="text-center text-sm text-slate-400"><LoaderCircle size={15} className="mr-2 inline animate-spin" /> Проверяем подпись Telegram…</p>}
             {waitingForTelegram && <div className="space-y-2 rounded-xl bg-white/5 p-3 text-center"><p className="flex items-center justify-center gap-2 text-sm text-slate-400"><CheckCircle2 size={16} /> Ссылка действует 5 минут. Откройте бот и нажмите Start.</p><a href={telegramLink} target="_blank" rel="noreferrer" className="btn-secondary w-full"><Send size={17} /> Открыть Telegram</a></div>}
             {widgetConfigLoaded && !botUsername && <p className="text-center text-xs leading-5 text-slate-500">Используется существующий безопасный вход через Telegram-бота.</p>}
