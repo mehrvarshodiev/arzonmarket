@@ -317,3 +317,13 @@
 :root:not([data-theme="light"]) .product-card{background:#1a202b;border-color:#2a3342;color:#e8edf5}
 :root:not([data-theme="light"]) .product-card:hover{background:#202936;border-color:#394658}
 :root:not([data-theme="light"]) .product-card .bg-panel{background:#252e3b}
+
+
+/* ArzonMarket modern midnight-navy palette (dark theme). */
+:root:not([data-theme="light"]){color-scheme:dark;background:#0d1420}
+:root:not([data-theme="light"]) body{background:#0d1420}
+:root:not([data-theme="light"]) .product-card{background:linear-gradient(145deg,#192638 0%,#151f2f 100%);border-color:#2b3a4f;color:#e8edf5;box-shadow:0 8px 24px rgba(0,8,20,.16)}
+:root:not([data-theme="light"]) .product-card:hover{background:linear-gradient(145deg,#203149 0%,#19273a 100%);border-color:#3a506c;box-shadow:0 14px 30px rgba(0,8,20,.24)}
+:root:not([data-theme="light"]) .product-card .bg-panel{background:#223148}
+:root:not([data-theme="light"]) .product-card-title{color:#edf3fc}
+:root:not([data-theme="light"]) .product-card .text-slate-700{color:#d5deeb}
