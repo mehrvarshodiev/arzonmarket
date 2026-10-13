@@ -4,8 +4,7 @@ import { Minus,Plus,Trash2,ShoppingBag } from 'lucide-react';
 import api from '../api';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-const somToRub = n => (Number(n) || 0) * 9.09;
-const money=n=>new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(somToRub(n));
+const money=n=>new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(Number(n) || 0);
 export default function Cart(){
  const {items,setQuantity,remove,clear,total}=useCart();const {isAuthenticated}=useAuth();const nav=useNavigate();const [form,setForm]=useState({name:'',phone:'',city:'Душанбе',address:''});const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [success,setSuccess]=useState('');
  const submit=async e=>{e.preventDefault();setBusy(true);setError('');try{const r=await api.post('/orders',{...form,items:items.map(i=>({id:i._id,quantity:i.quantity,color:i.selectedColor||null}))});clear();setSuccess('Заказ оформлен! Номер заказа: '+r.data.orderId);}catch(err){setError(err.response?.data?.message||'Не удалось оформить заказ. Проверьте вход и подключение сервера.');}finally{setBusy(false);}};
