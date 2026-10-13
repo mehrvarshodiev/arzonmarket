@@ -27,13 +27,11 @@ create policy "Public can read active products" on public.products for select to
 
 create table if not exists public.users (
   id uuid primary key default gen_random_uuid(),
-  phone text unique,
-  telegram_id text unique,
+  phone text unique not null,
   name text not null default 'Покупатель',
   role text not null default 'customer' check (role in ('customer','admin')),
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  constraint users_phone_or_telegram check (phone is not null or telegram_id is not null)
+  updated_at timestamptz not null default now()
 );
 alter table public.users enable row level security;
 
