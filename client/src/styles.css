@@ -327,3 +327,14 @@
 :root:not([data-theme="light"]) .product-card .bg-panel{background:#223148}
 :root:not([data-theme="light"]) .product-card-title{color:#edf3fc}
 :root:not([data-theme="light"]) .product-card .text-slate-700{color:#d5deeb}
+
+
+/* Match header and footer to the midnight-navy product cards in dark mode. */
+:root:not([data-theme="light"]) header,
+:root:not([data-theme="light"]) footer{background:linear-gradient(145deg,#192638 0%,#151f2f 100%);border-color:#2b3a4f;color:#e8edf5}
+:root:not([data-theme="light"]) header{box-shadow:0 8px 24px rgba(0,8,20,.12)}
+:root:not([data-theme="light"]) footer{border-top:1px solid #2b3a4f}
+:root:not([data-theme="light"]) header a,
+:root:not([data-theme="light"]) footer a{color:inherit}
+:root:not([data-theme="light"]) header a:hover,
+:root:not([data-theme="light"]) footer a:hover{color:#b7f36b}
