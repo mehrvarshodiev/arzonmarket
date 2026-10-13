@@ -70,9 +70,9 @@ export default function ProductCard({ product }) {
           onMouseMove={handleHover}
           onTouchStart={event => setTouchStart(event.touches[0].clientX)}
           onTouchEnd={swipeEnd}
-          className="relative block aspect-[.82] overflow-hidden rounded-[14px] bg-[#f5f5f7] sm:aspect-[.9] sm:rounded-[18px]">
+          className="relative block aspect-[.82] overflow-hidden rounded-[14px] bg-gradient-to-br from-[#f8fafc] via-[#f1f4f8] to-[#e9eef4] sm:aspect-[.9] sm:rounded-[18px]">
           <img key={currentImage} src={currentImage} alt={product.name} loading="lazy"
-            className="h-full w-full select-none object-contain p-2 transition duration-300 sm:p-4"
+            className="h-full w-full select-none object-contain p-0 transition-transform duration-500 ease-out group-hover:scale-[1.04]"
             onError={event => { event.currentTarget.src = placeholder; }} />
           {discount > 0 && <span className="absolute bottom-2 left-2 rounded-md bg-[#e83d78] px-2 py-1 text-[10px] font-extrabold text-white sm:bottom-3 sm:left-3 sm:text-xs">−{discount}%</span>}
           {product.featured && <span className="absolute left-2 top-2 rounded-md bg-[#6d28d9] px-2 py-1 text-[9px] font-bold text-white sm:left-3 sm:top-3 sm:text-[10px]">ХИТ</span>}
