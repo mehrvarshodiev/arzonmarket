@@ -55,6 +55,7 @@ export default function Login() {
         setBusy(false);
       }
     };
+    script.onerror = () => setError('Не удалось загрузить Telegram. Проверьте подключение и разрешите telegram.org в браузере.');
     container.appendChild(script);
     return () => {
       script.remove();
@@ -115,7 +116,7 @@ export default function Login() {
           <div className="telegram-divider"><span>или</span></div>
           {telegramBotUsername
             ? <div ref={telegramWidgetRef} className="telegram-widget-slot" aria-label="Войти через Telegram"/>
-            : <button type="button" disabled className="telegram-login-button" title="Telegram-вход пока не настроен"><Send size={18}/> {telegramConfigReady ? 'Войти через Telegram — временно недоступно' : 'Подключаем Telegram…'}</button>}
+            : <button type="button" disabled={busy || !telegramConfigReady} onClick={async () => { setTelegramConfigReady(false); setError(''); try { const { data } = await api.get('/auth/telegram/config'); if (data?.username) setTelegramBotUsername(String(data.username).replace(/^@/, '')); else setError('Telegram-бот не найден. Проверьте настройки бота в Vercel.'); } catch (err) { setError(err.response?.data?.message || 'Не удалось подключить Telegram. Попробуйте ещё раз.'); } finally { setTelegramConfigReady(true); } }} className="telegram-login-button" title="Повторить подключение Telegram"><Send size={18}/> {telegramConfigReady ? 'Войти через Telegram' : 'Подключаем Telegram…'}</button>}
         </div>
       </form>}
     </section>
