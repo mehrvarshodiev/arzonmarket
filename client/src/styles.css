@@ -295,3 +295,19 @@
  .hero-slide .hero-orb{transform:translateY(-50%)}
  .hero-slide-active .hero-orb{transform:translateY(-50%)}
 }
+
+
+/* Product cards follow the selected theme; primary shopping actions use the brand green. */
+.product-card{background:#11151e;color:#e8edf5;border:1px solid rgba(255,255,255,.07)}
+.product-card-title{color:#e8edf5}
+.product-card-title:hover{color:#b7f36b}
+.product-card .text-slate-700{color:#d8dfeb}
+.product-card .bg-panel{background:#1a202b}
+.product-card .text-accent{color:#b7f36b}
+:root[data-theme="light"] .product-card{background:#fff;color:#182230;border-color:#e4e9f0;box-shadow:0 2px 12px rgba(15,23,42,.055)}
+:root[data-theme="light"] .product-card:hover{background:#fff;border-color:#d6e4c4;box-shadow:0 12px 30px rgba(15,23,42,.11)}
+:root[data-theme="light"] .product-card-title{color:#182230}
+:root[data-theme="light"] .product-card-title:hover{color:#527f1f}
+:root[data-theme="light"] .product-card .text-slate-700{color:#344054}
+:root[data-theme="light"] .product-card .bg-panel{background:#f3f6f9}
+:root[data-theme="light"] .product-card .text-accent{color:#4f7d1d}
