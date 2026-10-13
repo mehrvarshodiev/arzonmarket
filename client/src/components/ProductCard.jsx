@@ -76,7 +76,7 @@ export default function ProductCard({ product }) {
           {discount > 0 && <span className="absolute bottom-2 left-2 rounded-md bg-[#e83d78] px-2 py-1 text-[10px] font-extrabold text-white sm:bottom-3 sm:left-3 sm:text-xs">−{discount}%</span>}
           {product.featured && <span className="absolute left-2 top-2 rounded-md bg-[#6d28d9] px-2 py-1 text-[9px] font-bold text-white sm:left-3 sm:top-3 sm:text-[10px]">ХИТ</span>}
           {gallery.length > 1 && <div className="absolute bottom-2 left-1/2 flex max-w-[60%] -translate-x-1/2 gap-1">{gallery.slice(0, 7).map((src, i) =>
-            <span key={src + i} className={`h-1 rounded-full transition-all ${i === activeImage ? 'w-4 bg-[#7c3aed]' : 'w-2 bg-slate-300/90'}`} />)}</div>}
+            <span key={src + i} className={`h-1 rounded-full transition-all ${i === activeImage ? 'w-4 bg-[#84cc16]' : 'w-2 bg-slate-300/90'}`} />)}</div>}
         </Link>
         {gallery.length > 1 && <span className="pointer-events-none absolute right-2 bottom-2 rounded-full bg-white/90 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600 sm:right-3 sm:bottom-3">{activeImage + 1}/{gallery.length}</span>}
       </div>
