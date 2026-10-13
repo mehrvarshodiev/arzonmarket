@@ -61,8 +61,8 @@ function RouteMetadata() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    const path = pathname.replace(/\\/+$/, '') || '/';
-    const isProduct = /^\\/product\\/[^/]+$/.test(path);
+    const path = pathname.replace(/\/+$/, '') || '/';
+    const isProduct = /^\/product\/[^/]+$/.test(path);
     const page = PAGE_METADATA[path] || (isProduct
       ? {
           title: 'Товар — ArzonMarket',
