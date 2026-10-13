@@ -313,48 +313,57 @@
 :root[data-theme="light"] .product-card .text-accent{color:#4f7d1d}
 
 
-/* Softer dark-mode product cards: keep the premium slate tone, avoid near-black panels. */
-:root:not([data-theme="light"]) .product-card{background:#1a202b;border-color:#2a3342;color:#e8edf5}
-:root:not([data-theme="light"]) .product-card:hover{background:#202936;border-color:#394658}
-:root:not([data-theme="light"]) .product-card .bg-panel{background:#252e3b}
-
-
-/* ArzonMarket modern midnight-navy palette (dark theme). */
+/* Unified midnight-navy surfaces: close to the page background, with subtle depth. */
 :root:not([data-theme="light"]){color-scheme:dark;background:#0d1420}
 :root:not([data-theme="light"]) body{background:#0d1420}
-:root:not([data-theme="light"]) .product-card{background:linear-gradient(145deg,#192638 0%,#151f2f 100%);border-color:#2b3a4f;color:#e8edf5;box-shadow:0 8px 24px rgba(0,8,20,.16)}
-:root:not([data-theme="light"]) .product-card:hover{background:linear-gradient(145deg,#203149 0%,#19273a 100%);border-color:#3a506c;box-shadow:0 14px 30px rgba(0,8,20,.24)}
-:root:not([data-theme="light"]) .product-card .bg-panel{background:#223148}
+
+/* Cards use a restrained lift from the page background rather than a bright panel. */
+:root:not([data-theme="light"]) .product-card{
+  background:linear-gradient(145deg,#121d2b 0%,#101a27 100%);
+  border-color:#202f42;
+  color:#e8edf5;
+  box-shadow:0 8px 24px rgba(0,0,0,.16);
+}
+:root:not([data-theme="light"]) .product-card:hover{
+  background:linear-gradient(145deg,#172638 0%,#121f2e 100%);
+  border-color:#30445c;
+  box-shadow:0 14px 30px rgba(0,0,0,.24);
+}
+:root:not([data-theme="light"]) .product-card .bg-panel{background:#1a293b}
 :root:not([data-theme="light"]) .product-card-title{color:#edf3fc}
+:root:not([data-theme="light"]) .product-card-title:hover{color:#b7f36b}
 :root:not([data-theme="light"]) .product-card .text-slate-700{color:#d5deeb}
+:root:not([data-theme="light"]) .product-card .text-accent{color:#b7f36b}
 
-
-/* Match header and footer to the midnight-navy product cards in dark mode. */
+/* Header, footer and mobile navigation share one quiet surface with the cards. */
 :root:not([data-theme="light"]) header,
-:root:not([data-theme="light"]) footer{background:linear-gradient(145deg,#192638 0%,#151f2f 100%);border-color:#2b3a4f;color:#e8edf5}
-:root:not([data-theme="light"]) header{box-shadow:0 8px 24px rgba(0,8,20,.12)}
-:root:not([data-theme="light"]) footer{border-top:1px solid #2b3a4f}
+:root:not([data-theme="light"]) footer,
+:root:not([data-theme="light"]) .mobile-bottom-nav{
+  background:linear-gradient(145deg,#111c2a 0%,#0f1926 100%);
+  border-color:#202f42;
+  color:#e8edf5;
+}
+:root:not([data-theme="light"]) header{
+  box-shadow:0 8px 24px rgba(0,0,0,.12);
+}
+:root:not([data-theme="light"]) footer{
+  border-top:1px solid #202f42;
+}
+:root:not([data-theme="light"]) .mobile-bottom-nav{
+  box-shadow:0 -8px 28px rgba(0,0,0,.22);
+}
 :root:not([data-theme="light"]) header a,
 :root:not([data-theme="light"]) footer a{color:inherit}
 :root:not([data-theme="light"]) header a:hover,
 :root:not([data-theme="light"]) footer a:hover{color:#b7f36b}
+:root:not([data-theme="light"]) .mobile-nav-link{color:#a7b5c8}
+:root:not([data-theme="light"]) .mobile-nav-link:hover,
+:root:not([data-theme="light"]) .mobile-nav-link-active{color:#b7f36b}
 
-
-/* Preserve each social network's recognizable icon color in dark mode. */
+/* Keep social icons recognizable against the darker footer. */
 :root:not([data-theme="light"]) .site-footer a[href*="instagram.com"],
 :root:not([data-theme="light"]) .site-footer a[href*="t.me/"]{color:inherit}
 :root:not([data-theme="light"]) .site-footer a[href*="instagram.com"] svg{color:#E4405F;stroke:#E4405F}
 :root:not([data-theme="light"]) .site-footer a[href*="t.me/"] svg{color:#229ED9;stroke:#229ED9}
 :root:not([data-theme="light"]) .site-footer a[href*="instagram.com"]:hover svg{color:#E4405F;stroke:#E4405F}
 :root:not([data-theme="light"]) .site-footer a[href*="t.me/"]:hover svg{color:#229ED9;stroke:#229ED9}
-
-/* Mobile bottom navigation uses the same midnight-navy surface as product cards. */
-:root:not([data-theme="light"]) .mobile-bottom-nav{
-  background:linear-gradient(145deg,#192638 0%,#151f2f 100%);
-  border-color:#2b3a4f;
-  box-shadow:0 -8px 28px rgba(0,8,20,.22);
-  color:#e8edf5;
-}
-:root:not([data-theme="light"]) .mobile-nav-link{color:#a7b5c8}
-:root:not([data-theme="light"]) .mobile-nav-link:hover{color:#b7f36b}
-:root:not([data-theme="light"]) .mobile-nav-link-active{color:#b7f36b}
