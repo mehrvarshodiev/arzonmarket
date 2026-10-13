@@ -16,7 +16,8 @@ export default function Login() {
   const [telegramLink, setTelegramLink] = useState('');
   const cancelled = useRef(false);
   const widgetContainer = useRef(null);
-  const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
+  const [botUsername, setBotUsername] = useState(import.meta.env.VITE_TELEGRAM_BOT_USERNAME || '');
+  const [widgetConfigLoaded, setWidgetConfigLoaded] = useState(Boolean(import.meta.env.VITE_TELEGRAM_BOT_USERNAME));
 
   useEffect(() => () => { cancelled.current = true; }, []);
 
@@ -33,6 +34,16 @@ export default function Login() {
       setBusy(false);
     }
   }, [loginTelegram, nav, location.state]);
+
+  useEffect(() => {
+    if (isAuthenticated || botUsername || widgetConfigLoaded) return undefined;
+    let active = true;
+    api.get('/auth/telegram/config')
+      .then(({ data }) => { if (active) setBotUsername(String(data?.username || '')); })
+      .catch(() => { /* Keep the existing bot challenge login as a fallback. */ })
+      .finally(() => { if (active) setWidgetConfigLoaded(true); });
+    return () => { active = false; };
+  }, [botUsername, widgetConfigLoaded, isAuthenticated]);
 
   useEffect(() => {
     if (isAuthenticated || !botUsername || !widgetContainer.current) return undefined;
@@ -119,6 +130,8 @@ export default function Login() {
             {error && <p role="alert" className="rounded-xl bg-red-400/10 p-3 text-sm text-red-400">{error}</p>}
             {botUsername ? (
               <div className="flex min-h-12 justify-center" ref={widgetContainer} aria-label="Войти через Telegram" />
+            ) : !widgetConfigLoaded ? (
+              <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-3 text-sm text-slate-400"><LoaderCircle size={17} className="animate-spin" /> Загружаем Telegram…</div>
             ) : (
               <button type="button" disabled={busy} onClick={startTelegramLogin} className="telegram-login-button w-full">
                 {busy ? <LoaderCircle size={18} className="animate-spin" /> : <Send size={18} />}
@@ -127,7 +140,7 @@ export default function Login() {
             )}
             {busy && botUsername && <p className="text-center text-sm text-slate-400"><LoaderCircle size={15} className="mr-2 inline animate-spin" /> Проверяем подпись Telegram…</p>}
             {waitingForTelegram && <div className="space-y-2 rounded-xl bg-white/5 p-3 text-center"><p className="flex items-center justify-center gap-2 text-sm text-slate-400"><CheckCircle2 size={16} /> Ссылка действует 5 минут. Откройте бот и нажмите Start.</p><a href={telegramLink} target="_blank" rel="noreferrer" className="btn-secondary w-full"><Send size={17} /> Открыть Telegram</a></div>}
-            {!botUsername && <p className="text-center text-xs leading-5 text-slate-500">Если виджет не настроен, используется существующий безопасный вход через Telegram-бота.</p>}
+            {widgetConfigLoaded && !botUsername && <p className="text-center text-xs leading-5 text-slate-500">Используется существующий безопасный вход через Telegram-бота.</p>}
             <p className="text-center text-xs leading-5 text-slate-500">Роль определяется сервером. Покупатель получает роль customer; роль admin выдаётся только Telegram ID из TELEGRAM_ADMIN_IDS.</p>
           </div>
         )}
