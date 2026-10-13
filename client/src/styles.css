@@ -311,3 +311,9 @@
 :root[data-theme="light"] .product-card .text-slate-700{color:#344054}
 :root[data-theme="light"] .product-card .bg-panel{background:#f3f6f9}
 :root[data-theme="light"] .product-card .text-accent{color:#4f7d1d}
+
+
+/* Softer dark-mode product cards: keep the premium slate tone, avoid near-black panels. */
+:root:not([data-theme="light"]) .product-card{background:#1a202b;border-color:#2a3342;color:#e8edf5}
+:root:not([data-theme="light"]) .product-card:hover{background:#202936;border-color:#394658}
+:root:not([data-theme="light"]) .product-card .bg-panel{background:#252e3b}
