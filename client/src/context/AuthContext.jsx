@@ -18,17 +18,17 @@ export function AuthProvider({ children }) {
   }, []);
 
   const save = useCallback((data) => {
-    localStorage.setItem('am_token', data.token);
+    // Telegram credentials stay in an HttpOnly cookie; only phone auth keeps its existing token storage.
+    if (data.token) localStorage.setItem('am_token', data.token);
+    else localStorage.removeItem('am_token');
     localStorage.setItem('am_user', JSON.stringify(data.user));
     localStorage.setItem('am_auth_type', data.sessionType || 'phone');
-    setToken(data.token);
+    setToken(data.token || null);
     setUser(data.user);
   }, []);
 
   useEffect(() => {
-    // Only Telegram sessions use the revocable opaque session endpoint.
-    // Existing phone/code auth remains untouched.
-    if (localStorage.getItem('am_auth_type') !== 'telegram') return;
+    if (localStorage.getItem('am_auth_type') !== 'telegram') return undefined;
     let active = true;
     api.get('/auth/telegram/session')
       .then(({ data }) => {
@@ -36,9 +36,9 @@ export function AuthProvider({ children }) {
         if (data?.user) {
           localStorage.setItem('am_user', JSON.stringify(data.user));
           setUser(data.user);
-        } else {
-          clearLocalSession();
-        }
+          setToken(null);
+          localStorage.removeItem('am_token');
+        } else clearLocalSession();
       })
       .catch(() => { if (active) clearLocalSession(); });
     return () => { active = false; };
@@ -52,7 +52,7 @@ export function AuthProvider({ children }) {
   }, [save]);
 
   const loginTelegram = useCallback(async (data) => {
-    if (!data?.token || !data?.user) throw new Error('Ответ авторизации некорректен.');
+    if (!data?.user) throw new Error('Ответ авторизации некорректен.');
     save({ ...data, sessionType: 'telegram' });
     return data;
   }, [save]);
@@ -60,20 +60,20 @@ export function AuthProvider({ children }) {
   const logout = useCallback(async () => {
     const currentToken = token || localStorage.getItem('am_token');
     try {
-      if (currentToken && localStorage.getItem('am_auth_type') === 'telegram') {
-        await api.post('/auth/telegram/logout', {}, {
-          headers: { Authorization: `Bearer ${currentToken}` }
-        });
+      if (localStorage.getItem('am_auth_type') === 'telegram') {
+        await api.post('/auth/telegram/logout', {}, currentToken
+          ? { headers: { Authorization: `Bearer ${currentToken}` } }
+          : undefined);
       }
     } catch {
-      // Clear local state even if the network is unavailable; server sessions expire automatically.
+      // Always clear the UI; server-side sessions have a seven-day expiry as a fallback.
     } finally {
       clearLocalSession();
     }
   }, [token, clearLocalSession]);
 
   const value = useMemo(() => ({
-    token, user, isAuthenticated: Boolean(token), isAdmin: user?.role === 'admin',
+    token, user, isAuthenticated: Boolean(user), isAdmin: user?.role === 'admin',
     requestCode, verifyCode, loginTelegram, logout
   }), [token, user, requestCode, verifyCode, loginTelegram, logout]);
 
