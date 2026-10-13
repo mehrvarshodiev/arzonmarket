@@ -161,12 +161,21 @@ export default async function handler(req, res) {
   if (req.method === "POST" && route === "telegram/widget") {
     try {
       if (!validateTelegramWidget(req.body)) return reply(res, 401, { message: "Данные Telegram недействительны или устарели. Попробуйте войти снова." });
+      // The short auth_date window limits replay time; this unique signature record prevents replay within that window too.
+      await supabase("telegram_widget_auth_replays?select=signature_hash", {
+        method: "POST", headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({
+          signature_hash: hashToken(String(req.body.hash)),
+          auth_date: new Date(Number(req.body.auth_date) * 1000).toISOString()
+        })
+      });
       const user = await upsertTelegramUser(req.body);
       const session = await createSession(user);
       setSessionCookie(res, session.token, session.expiresAt);
       return reply(res, 200, { expiresAt: session.expiresAt, sessionType: "telegram", user: userView(user) });
     } catch (error) {
       console.error("Telegram widget login failed:", error.message);
+      if (error.status === 409) return reply(res, 401, { message: "Эти данные Telegram уже использовались. Запустите вход ещё раз." });
       if (error.status === 401 || error.status === 403) return reply(res, 503, { message: "Нет доступа к базе покупателей. Проверьте настройки Supabase." });
       return reply(res, 500, { message: "Не удалось завершить вход через Telegram. Проверьте настройки сервера." });
     }
