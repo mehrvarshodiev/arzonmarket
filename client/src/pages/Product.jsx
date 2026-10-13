@@ -4,8 +4,7 @@ import { ArrowLeft, ShoppingCart, ShieldCheck, ChevronLeft, ChevronRight, Check,
 import api from '../api';
 import { useCart } from '../context/CartContext';
 
-const somToRub = n => (Number(n) || 0) * 9.09;
-const money = n => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(somToRub(n));
+const money = n => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(Number(n) || 0);
 const fallbackImage = 'https://placehold.co/800x800/f4f5f7/8a95a5?text=ArzonMarket';
 const swatches = { 'черный':'#171717','чёрный':'#171717','black':'#171717','белый':'#f8fafc','white':'#f8fafc','серый':'#9ca3af','gray':'#9ca3af','grey':'#9ca3af','синий':'#2563eb','blue':'#2563eb','красный':'#dc2626','red':'#dc2626','зеленый':'#16a34a','зелёный':'#16a34a','green':'#16a34a','фиолетовый':'#9333ea','розовый':'#ec4899','pink':'#ec4899','золотой':'#d4a72c' };
 
