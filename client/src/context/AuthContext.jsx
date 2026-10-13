@@ -7,7 +7,7 @@ export function AuthProvider({ children }) {
   const save = useCallback(data => { localStorage.setItem('am_token', data.token); localStorage.setItem('am_user', JSON.stringify(data.user)); setToken(data.token); setUser(data.user); }, []);
   const requestCode = useCallback(phone => api.post('/auth/request-code', { phone }), []);
   const verifyCode = useCallback(async (phone, code, name) => { const { data } = await api.post('/auth/verify-code', { phone, code, name }); save(data); return data; }, [save]);
-  const loginTelegram = useCallback(async payload => { const { data } = await api.post('/auth/telegram', payload); save(data); return data; }, [save]);
+  const loginTelegram = useCallback(async data => { if (!data?.token || !data?.user) throw new Error('Ответ авторизации некорректен.'); save(data); return data; }, [save]);
   const logout = useCallback(() => { localStorage.removeItem('am_token'); localStorage.removeItem('am_user'); setToken(null); setUser(null); }, []);
   const value = useMemo(() => ({ token, user, isAuthenticated: Boolean(token), isAdmin: user?.role === 'admin', requestCode, verifyCode, loginTelegram, logout }), [token, user, requestCode, verifyCode, loginTelegram, logout]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
