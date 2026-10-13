@@ -338,3 +338,23 @@
 :root:not([data-theme="light"]) footer a{color:inherit}
 :root:not([data-theme="light"]) header a:hover,
 :root:not([data-theme="light"]) footer a:hover{color:#b7f36b}
+
+
+/* Preserve each social network's recognizable icon color in dark mode. */
+:root:not([data-theme="light"]) .site-footer a[href*="instagram.com"],
+:root:not([data-theme="light"]) .site-footer a[href*="t.me/"]{color:inherit}
+:root:not([data-theme="light"]) .site-footer a[href*="instagram.com"] svg{color:#E4405F;stroke:#E4405F}
+:root:not([data-theme="light"]) .site-footer a[href*="t.me/"] svg{color:#229ED9;stroke:#229ED9}
+:root:not([data-theme="light"]) .site-footer a[href*="instagram.com"]:hover svg{color:#E4405F;stroke:#E4405F}
+:root:not([data-theme="light"]) .site-footer a[href*="t.me/"]:hover svg{color:#229ED9;stroke:#229ED9}
+
+/* Mobile bottom navigation uses the same midnight-navy surface as product cards. */
+:root:not([data-theme="light"]) .mobile-bottom-nav{
+  background:linear-gradient(145deg,#192638 0%,#151f2f 100%);
+  border-color:#2b3a4f;
+  box-shadow:0 -8px 28px rgba(0,8,20,.22);
+  color:#e8edf5;
+}
+:root:not([data-theme="light"]) .mobile-nav-link{color:#a7b5c8}
+:root:not([data-theme="light"]) .mobile-nav-link:hover{color:#b7f36b}
+:root:not([data-theme="light"]) .mobile-nav-link-active{color:#b7f36b}
