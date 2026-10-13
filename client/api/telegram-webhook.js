@@ -372,7 +372,13 @@ export default async function handler(req, res) {
     const draft = { ...(current.draft || {}) };
 
     if (key === "image") {
-      if (message.photo?.length) {
+      // /done завершает шаг фото, а не считается некорректной ссылкой.
+      if (text === "/done") {
+        if (!draft.images?.length) {
+          await send(message.chat.id, "Сначала отправь хотя бы одно фото или отправь — если товар без фото.");
+          return reply(res, { ok: true });
+        }
+      } else if (message.photo?.length) {
         try {
           draft.images = [...(draft.images || []), await saveTelegramPhoto(message.photo)].slice(0, 10);
         } catch (error) {
@@ -391,7 +397,7 @@ export default async function handler(req, res) {
       } else {
         const value = text === "—" ? "" : text;
         if (value && !value.startsWith("https://")) {
-          await send(message.chat.id, "Отправь фото из галереи/файлов, прямую HTTPS-ссылку или — если без фото:");
+          await send(message.chat.id, "Отправь фото из галереи/файлов, прямую HTTPS-ссылку, /done после загрузки фото или — если без фото:");
           return reply(res, { ok: true });
         }
         if (value) {
