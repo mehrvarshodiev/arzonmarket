@@ -11,10 +11,8 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  // Telegram sessions use a server-only HttpOnly cookie. Do not copy their secret into JS headers.
   const token = localStorage.getItem('am_token');
-  const authType = localStorage.getItem('am_auth_type');
-  if (token && authType !== 'telegram') config.headers.Authorization = `Bearer ${token}`;
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
