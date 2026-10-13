@@ -5,7 +5,7 @@ const reply = (res, status, payload) => res.status(status).json(payload);
 const hashToken = (value) => crypto.createHash("sha256").update(String(value)).digest("hex");
 
 function adminTelegramIds() {
-  return new Set(String(env("TELEGRAM_ADMIN_IDS") || "").split(",").map(v => v.trim()).filter(v => /^\\d+$/.test(v)));
+  return new Set(String(env("TELEGRAM_ADMIN_IDS") || "").split(",").map(v => v.trim()).filter(v => /^\d+$/.test(v)));
 }
 async function getAdminBotInfo() {
   const token = env("TELEGRAM_BOT_TOKEN");
@@ -19,7 +19,7 @@ async function supabase(path, options = {}) {
   const base = env("SUPABASE_URL");
   const key = env("SUPABASE_SERVICE_ROLE_KEY");
   if (!base || !key) throw new Error("Supabase server credentials are not configured");
-  const response = await fetch(`${base.replace(/\\/$/, "")}/rest/v1/${path}`, {
+  const response = await fetch(`${base.replace(/\/$/, "")}/rest/v1/${path}`, {
     ...options,
     headers: {
       apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json",
@@ -79,7 +79,7 @@ async function createSession(user) {
 }
 function bearerToken(req) {
   const header = String(req.headers?.authorization || "");
-  const match = header.match(/^Bearer\\s+([A-Za-z0-9_-]{40,100})$/i);
+  const match = header.match(/^Bearer\s+([A-Za-z0-9_-]{40,100})$/i);
   return match?.[1] || "";
 }
 function cookieToken(req) {
@@ -122,7 +122,7 @@ function validateTelegramWidget(payload) {
   const allowed = new Set(["id", "first_name", "last_name", "username", "photo_url", "auth_date", "hash"]);
   const keys = Object.keys(payload);
   if (keys.some(key => !allowed.has(key)) || !/^[a-f0-9]{64}$/i.test(String(payload.hash || ""))) return false;
-  if (!/^\\d{1,20}$/.test(String(payload.id || "")) || !/^\\d+$/.test(String(payload.auth_date || ""))) return false;
+  if (!/^\d{1,20}$/.test(String(payload.id || "")) || !/^\d+$/.test(String(payload.auth_date || ""))) return false;
   const authDate = Number(payload.auth_date);
   const now = Math.floor(Date.now() / 1000);
   if (!Number.isSafeInteger(authDate) || authDate > now + 30 || now - authDate > 5 * 60) return false;
@@ -133,9 +133,9 @@ function validateTelegramWidget(payload) {
       String(payload.last_name || "").length > 120 ||
       String(payload.username || "").length > 64 ||
       String(payload.photo_url || "").length > 2048) return false;
-  if (payload.photo_url && !/^https:\\/\\//i.test(payload.photo_url)) return false;
+  if (payload.photo_url && !/^https:\/\//i.test(payload.photo_url)) return false;
   const checkString = keys.filter(key => key !== "hash").sort()
-    .map(key => `${key}=${String(payload[key])}`).join("\\n");
+    .map(key => `${key}=${String(payload[key])}`).join("\n");
   const secretKey = crypto.createHash("sha256").update(botToken).digest();
   const expected = crypto.createHmac("sha256", secretKey).update(checkString).digest();
   const received = Buffer.from(String(payload.hash), "hex");
@@ -146,7 +146,7 @@ export default async function handler(req, res) {
   const segments = Array.isArray(req.query?.path)
     ? req.query.path.map(String)
     : new URL(req.url || "/", "https://arzonmarket.local").pathname.split("/").filter(Boolean).slice(2);
-  const route = segments.join("/").replace(/\\/$/, "");
+  const route = segments.join("/").replace(/\/$/, "");
 
   if (req.method === "GET" && route === "telegram/config") {
     try {
@@ -242,7 +242,7 @@ export default async function handler(req, res) {
       }
       if (challenge.status !== "confirmed" || !challenge.telegram_id) return reply(res, 202, { status: challenge.status });
       const telegramId = String(challenge.telegram_id);
-      if (!/^\\d{1,20}$/.test(telegramId)) return reply(res, 400, { message: "Некорректный Telegram ID." });
+      if (!/^\d{1,20}$/.test(telegramId)) return reply(res, 400, { message: "Некорректный Telegram ID." });
       const role = adminTelegramIds().has(telegramId) ? "admin" : "customer";
       const name = String(challenge.telegram_name || "Покупатель").slice(0, 120);
       const lookup = await supabase(`users?telegram_id=eq.${encodeURIComponent(telegramId)}&select=id,phone,telegram_id,name,role&limit=1`);
