@@ -4,7 +4,7 @@ const env = (name) => globalThis.process?.env?.[name];
 const reply = (res, status, payload) => res.status(status).json(payload);
 function readBearerToken(req) {
   const header = String(req.headers?.authorization || "");
-  const match = header.match(/^Bearer\\s+([A-Za-z0-9._-]+)$/i);
+  const match = header.match(/^Bearer\s+([A-Za-z0-9._-]+)$/i);
   return match?.[1] || "";
 }
 
