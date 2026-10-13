@@ -43,7 +43,7 @@ export default function Product() {
 
     const title = `${product.name} — купить в ArzonMarket`;
     const description = String(product.description || `${product.name} — цена, характеристики и фото в ArzonMarket.`)
-      .replace(/\\s+/g, ' ')
+      .replace(/\s+/g, ' ')
       .trim()
       .slice(0, 300);
 
