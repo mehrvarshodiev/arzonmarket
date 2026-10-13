@@ -23,7 +23,7 @@ export default function Login() {
       if (!data?.username) throw new Error('Telegram-бот не найден. Проверьте настройки бота.');
       setTelegramBotUsername(String(data.username).replace(/^@/, ''));
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Не удалось подключить Telegram. Попробуйте ещё раз.');
+      setError('Вход через Telegram временно недоступен. Попробуйте позже.');
     } finally {
       setTelegramConfigReady(true);
     }
@@ -36,7 +36,7 @@ export default function Login() {
         if (active && data?.username) setTelegramBotUsername(String(data.username).replace(/^@/, ''));
       })
       .catch(() => {
-        if (active) setError('Не удалось подключить Telegram. Нажмите кнопку ниже, чтобы повторить попытку.');
+        if (active) setError('Вход через Telegram временно недоступен. Попробуйте позже.');
       })
       .finally(() => { if (active) setTelegramConfigReady(true); });
     return () => { active = false; };
