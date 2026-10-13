@@ -9,9 +9,8 @@ export default function Login() {
   const nav = useNavigate();
   const location = useLocation();
   const telegramWidgetRef = useRef(null);
-  const [telegramBotUsername, setTelegramBotUsername] = useState(
-    String(import.meta.env.VITE_TELEGRAM_BOT_USERNAME || '').replace(/^@/, '')
-  );
+  // Never fall back to the admin bot: buyer login must use its own dedicated bot.
+  const [telegramBotUsername, setTelegramBotUsername] = useState('');
   const [telegramConfigReady, setTelegramConfigReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -111,7 +110,7 @@ export default function Login() {
         ) : (
           <div className="mt-6 space-y-4">
             <p className="text-sm leading-6 text-slate-400">
-              Зарегистрируйтесь или войдите одним нажатием через Telegram. Номер телефона и отдельный пароль не нужны.
+              Создайте аккаунт покупателя через отдельного Telegram-бота ArzonMarket. Этот вход не даёт доступа к административному боту.
             </p>
             {error && <p role="alert" className="rounded-xl bg-red-400/10 p-3 text-sm text-red-400">{error}</p>}
             <div className="flex min-h-12 items-center justify-center">
@@ -135,7 +134,7 @@ export default function Login() {
               </p>
             )}
             <p className="text-center text-xs leading-5 text-slate-500">
-              По нажатию Telegram подтвердит ваш аккаунт и передаст сайту доступные данные профиля. Номер телефона не передаётся.
+              Telegram передаст сайту только доступные данные профиля. Номер телефона не передаётся. Аккаунт покупателя и админ-бот разделены.
             </p>
           </div>
         )}
