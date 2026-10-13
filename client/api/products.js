@@ -41,6 +41,18 @@ export default async function handler(req, res) {
     // not the entire catalog array.
     const rawId = req.query?.id;
     const id = (Array.isArray(rawId) ? rawId[0] : rawId);
+
+    // /api/products/categories is a catalog endpoint, not a product UUID.
+    // The Vercel product-detail rewrite also matches this path, so handle it
+    // explicitly before the single-product lookup.
+    if (typeof id === "string" && id.trim().toLowerCase() === "categories") {
+      const rows = await supabase("products?select=category&is_active=eq.true&limit=200");
+      const categories = [...new Set(rows.map((row) => row.category).filter(Boolean))]
+        .sort((a, b) => String(a).localeCompare(String(b)));
+      res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=120");
+      return res.status(200).json(categories);
+    }
+
     if (typeof id === "string" && id.trim()) {
       const params = new URLSearchParams({
         select: "*",
