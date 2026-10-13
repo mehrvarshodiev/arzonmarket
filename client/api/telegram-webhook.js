@@ -1,6 +1,7 @@
 const reply = (res, data, status = 200) => res.status(status).json(data);
 
 const env = (name) => globalThis.process?.env?.[name];
+const cryptoHash = async (value) => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(value)))), b => b.toString(16).padStart(2, "0")).join("");
 
 async function supabase(path, options = {}) {
   const base = env("SUPABASE_URL");
@@ -180,6 +181,28 @@ export default async function handler(req, res) {
     const actorId = callback?.from?.id ?? message?.from?.id;
     const chatId = callback?.message?.chat?.id ?? message?.chat?.id;
     if (!chatId || !actorId) return reply(res, { ok: true });
+
+    const incomingText = typeof message?.text === "string" ? message.text.trim() : "";
+    const loginStart = incomingText.match(/^\/start\s+login_([a-f0-9]{64})$/i);
+    if (message && loginStart) {
+      const challengeHash = await cryptoHash(loginStart[1]);
+      const challenges = await supabase(`telegram_login_challenges?token_hash=eq.${challengeHash}&status=eq.pending&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=id&limit=1`);
+      if (!challenges?.[0]) {
+        await send(chatId, "Эта ссылка входа недействительна или устарела. Вернитесь на сайт и начните вход заново.");
+        return reply(res, { ok: true });
+      }
+      const displayName = [message.from?.first_name, message.from?.last_name].filter(Boolean).join(" ").trim() || "Покупатель";
+      const confirmed = await supabase(`telegram_login_challenges?id=eq.${encodeURIComponent(challenges[0].id)}&status=eq.pending&expires_at=gt.${encodeURIComponent(new Date().toISOString())}`, {
+        method: "PATCH", headers: { Prefer: "return=representation" },
+        body: JSON.stringify({ status: "confirmed", telegram_id: String(actorId), telegram_name: displayName.slice(0, 120), confirmed_at: new Date().toISOString() })
+      });
+      if (!confirmed?.length) {
+        await send(chatId, "Ссылка входа уже использована или устарела. Вернитесь на сайт и начните заново.");
+        return reply(res, { ok: true });
+      }
+      await send(chatId, "✅ Вход подтверждён. Вернитесь на сайт ArzonMarket — профиль откроется автоматически.\n\nЭто подтверждение не даёт прав администратора.");
+      return reply(res, { ok: true });
+    }
 
     const admins = (env("TELEGRAM_ADMIN_IDS") || "")
       .split(",").map(v => v.trim().replace(/^@/, "").toLowerCase()).filter(Boolean);
