@@ -54,7 +54,6 @@ export default function Login() {
     script.dataset.size = 'large';
     script.dataset.radius = '12';
     script.dataset.userpic = 'false';
-    script.dataset.requestAccess = 'write';
     script.dataset.onauth = 'onTelegramAuth(user)';
     window.onTelegramAuth = async telegramUser => {
       setBusy(true);
