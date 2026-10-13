@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom';
 import { Heart, ShoppingCart, Minus, Plus } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
-const somToRub = n => (Number(n) || 0) * 9.09;
-const money = n => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(somToRub(n));
+const money = n => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(Number(n) || 0);
 const placeholder = 'https://placehold.co/600x600/f4f5f7/8a95a5?text=ArzonMarket';
 
 export default function ProductCard({ product }) {
