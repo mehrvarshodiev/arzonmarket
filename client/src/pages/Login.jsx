@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { Smartphone, UserRound, Phone, LoaderCircle, Send, ShoppingBag, LogOut } from 'lucide-react';
+import { Smartphone, UserRound, Phone, LoaderCircle, Send, ShoppingBag, LogOut, ShieldCheck } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import parsePhoneNumber, { getCountryCallingCode } from 'libphonenumber-js/max';
@@ -91,29 +91,33 @@ export default function Login() {
     setBusy(true);try{if(!sent){await requestCode(fullPhone);setSent(true);}else{await verifyCode(fullPhone,code,normalizedName);nav(location.state?.from?.pathname||'/',{replace:true});}}
     catch(err){setError(err.code==='API_NOT_CONFIGURED'?'Сервис входа ещё не подключён к серверу. Попробуйте позже.':err.code==='API_INVALID_RESPONSE'?'Сервер API настроен неправильно. Обратитесь к администратору.':err.response?.data?.message||'Не удалось выполнить вход. Проверьте подключение и попробуйте снова.');}finally{setBusy(false);}
   };
-  return <main className="container-shell grid min-h-[70vh] place-items-center py-12"><section className="auth-card w-full max-w-md rounded-3xl border border-white/10 bg-panel p-6 sm:p-8">
-    <span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent text-ink"><Smartphone/></span>
-    <h1 className="mt-5 text-3xl font-black text-white">{isAuthenticated?'Ваш профиль':'Войти в ArzonMarket'}</h1>
-    
-    {isAuthenticated?<p className="mt-3 text-slate-400">{user?.name||user?.phone||'Вы вошли в аккаунт.'}</p>
-      <Link to="/catalog" className="btn-primary mt-5 w-full"><ShoppingBag size={17}/> Перейти в каталог</Link><Link to="/cart" className="btn-secondary mt-3 w-full"><ShoppingBag size={17}/> Моя корзина</Link>
-      {user?.role==='admin'&&<Link to="/admin" className="btn-secondary flex w-full items-center justify-center gap-2"><ShieldCheck size={17}/> Панель администратора</Link>}
-      <button onClick={()=>{logout();setSent(false);setCode('');}} className="mt-2 flex w-full items-center justify-center gap-2 py-2 text-sm text-slate-500 transition hover:text-red-300"><LogOut size={16}/> Выйти из аккаунта</button></div>:<form onSubmit={submit} className="mt-7 space-y-4" noValidate>
-      <label className="block"><span className="field-label"><UserRound size={14}/> Ваше имя</span><input className={`field ${touched.name&&nameError?'field-invalid':''}`} type="text" autoComplete="name" placeholder="Введите ваше имя" value={name} onChange={e=>setName(e.target.value.slice(0,80))} onBlur={()=>setTouched(t=>({...t,name:true}))} required maxLength={80} disabled={sent}/>{touched.name&&nameError&&<span className="field-error">{nameError}</span>}</label>
-      <div><span className="field-label"><Phone size={14}/> Номер телефона</span><div className="phone-entry mt-2">
-        <select className="country-select" aria-label="Код страны" value={countryIso} onChange={e=>{setCountryIso(e.target.value);setTouched(t=>({...t,phone:false}));setError('');}} disabled={sent}>{countries.map(c=><option key={c.iso} value={c.iso}>{countryFlag(c.iso)} +{getCountryCallingCode(c.iso)} · {c.iso}</option>)}</select>
-        <input className={`field phone-number ${touched.phone&&phoneError?'field-invalid':''}`} type="tel" inputMode="numeric" autoComplete="tel-national" placeholder="Номер телефона" value={localPhone} maxLength={nationalMaxLength} onChange={e=>setLocalPhone(e.target.value.replace(/\D/g,'').slice(0,nationalMaxLength))} onBlur={()=>setTouched(t=>({...t,phone:true}))} required disabled={sent} aria-label="Номер телефона без кода страны"/>
-      </div>{touched.phone&&phoneError&&<span className="field-error">{phoneError}</span>}</div>
-      {sent&&<label className="block"><span className="field-label">Код подтверждения</span><input className="field text-center text-xl tracking-[.5em]" inputMode="numeric" autoComplete="one-time-code" maxLength={4} value={code} onChange={e=>setCode(e.target.value.replace(/\\D/g,'').slice(0,4))} required/><p className="mt-2 text-xs text-slate-500">Демо: код выводится в консоль сервера.</p></label>}
-      {error&&<p role="alert" className="rounded-xl bg-red-400/10 p-3 text-sm text-red-600">{error}</p>}
-      <button onClick={() => setError('')} disabled={busy||(sent&&code.length!==4)} className="btn-primary w-full">{busy?<><LoaderCircle size={17} className="animate-spin"/> Подождите...</>:sent?'Подтвердить и создать профиль':'Получить код подтверждения'}</button>
-      {sent&&<button type="button" onClick={()=>{setSent(false);setCode('');setError('');}} className="w-full text-sm text-slate-400">Изменить данные</button>}
-      <div className="telegram-login-section mt-5">
-        <div className="telegram-divider"><span>или</span></div>
-        {telegramBotUsername
-          ? <div ref={telegramWidgetRef} className="telegram-widget-slot" aria-label="Войти через Telegram" />
-          : <button type="button" disabled className="telegram-login-button" title="Telegram-вход пока не настроен"><Send size={18}/> {telegramConfigReady ? 'Войти через Telegram — временно недоступно' : 'Подключаем Telegram…'}</button>}
-      </div>
-    </form>}
-  </section></main>;
+  return <main className="container-shell grid min-h-[70vh] place-items-center py-12">
+    <section className="auth-card w-full max-w-md rounded-3xl border border-white/10 bg-panel p-6 sm:p-8">
+      <span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent text-ink"><Smartphone/></span>
+      <h1 className="mt-5 text-3xl font-black text-white">{isAuthenticated ? 'Ваш профиль' : 'Войти в ArzonMarket'}</h1>
+      {isAuthenticated ? <>
+        <p className="mt-3 text-slate-400">{user?.name || user?.phone || (user?.telegramId ? 'Аккаунт Telegram подключён' : 'Вы вошли в аккаунт.')}</p>
+        <Link to="/catalog" className="btn-primary mt-5 w-full"><ShoppingBag size={17}/> Перейти в каталог</Link>
+        <Link to="/cart" className="btn-secondary mt-3 w-full"><ShoppingBag size={17}/> Моя корзина</Link>
+        {user?.role === 'admin' && <Link to="/admin" className="btn-secondary mt-3 w-full"><ShieldCheck size={17}/> Панель администратора</Link>}
+        <button onClick={() => { logout(); setSent(false); setCode(''); }} className="mt-4 flex w-full items-center justify-center gap-2 py-2 text-sm text-slate-500 transition hover:text-red-300"><LogOut size={16}/> Выйти</button>
+      </> : <form onSubmit={submit} className="mt-6 space-y-4" noValidate>
+        <label className="block"><span className="field-label"><UserRound size={14}/> Ваше имя</span><input className={`field ${touched.name && nameError ? 'field-invalid' : ''}`} type="text" autoComplete="name" placeholder="Введите ваше имя" value={name} onChange={e => setName(e.target.value.slice(0, 80))} onBlur={() => setTouched(t => ({...t, name: true}))} required maxLength={80} disabled={sent}/>{touched.name && nameError && <span className="field-error">{nameError}</span>}</label>
+        <div><span className="field-label"><Phone size={14}/> Номер телефона</span><div className="phone-entry mt-2">
+          <select className="country-select" aria-label="Код страны" value={countryIso} onChange={e => {setCountryIso(e.target.value); setTouched(t => ({...t, phone: false})); setError('');}} disabled={sent}>{countries.map(c => <option key={c.iso} value={c.iso}>{countryFlag(c.iso)} +{getCountryCallingCode(c.iso)} · {c.iso}</option>)}</select>
+          <input className={`field phone-number ${touched.phone && phoneError ? 'field-invalid' : ''}`} type="tel" inputMode="numeric" autoComplete="tel-national" placeholder="Номер телефона" value={localPhone} maxLength={nationalMaxLength} onChange={e => setLocalPhone(e.target.value.replace(/\\D/g, '').slice(0, nationalMaxLength))} onBlur={() => setTouched(t => ({...t, phone: true}))} required disabled={sent} aria-label="Номер телефона без кода страны"/>
+        </div>{touched.phone && phoneError && <span className="field-error">{phoneError}</span>}</div>
+        {sent && <label className="block"><span className="field-label">Код подтверждения</span><input className="field text-center text-xl tracking-[.5em]" inputMode="numeric" autoComplete="one-time-code" maxLength={4} value={code} onChange={e => setCode(e.target.value.replace(/\\D/g, '').slice(0, 4))} required/><p className="mt-2 text-xs text-slate-500">Демо: код выводится в консоль сервера.</p></label>}
+        {error && <p role="alert" className="rounded-xl bg-red-400/10 p-3 text-sm text-red-500">{error}</p>}
+        <button type="submit" disabled={busy || (sent && code.length !== 4)} className="btn-primary w-full">{busy ? <><LoaderCircle size={17} className="animate-spin"/> Подождите...</> : sent ? 'Подтвердить и создать профиль' : 'Получить код подтверждения'}</button>
+        {sent && <button type="button" onClick={() => {setSent(false); setCode(''); setError('');}} className="w-full text-sm text-slate-400">Изменить данные</button>}
+        <div className="telegram-login-section mt-5">
+          <div className="telegram-divider"><span>или</span></div>
+          {telegramBotUsername
+            ? <div ref={telegramWidgetRef} className="telegram-widget-slot" aria-label="Войти через Telegram"/>
+            : <button type="button" disabled className="telegram-login-button" title="Telegram-вход пока не настроен"><Send size={18}/> {telegramConfigReady ? 'Войти через Telegram — временно недоступно' : 'Подключаем Telegram…'}</button>}
+        </div>
+      </form>}
+    </section>
+  </main>;
 }
