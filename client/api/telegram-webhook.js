@@ -221,6 +221,21 @@ export default async function handler(req, res) {
       } else if (action === "canceldelete") {
         await answerCallback(callback.id, "Удаление отменено");
         await send(chatId, "Удаление отменено.");
+      } else if ((action === "toggleactive" || action === "featured") && id) {
+        const product = await getProduct(id);
+        if (!product) {
+          await answerCallback(callback.id, "Товар не найден");
+          await send(chatId, "Товар не найден.");
+        } else {
+          const patch = action === "toggleactive"
+            ? { is_active: product.is_active === false }
+            : { featured: !product.featured };
+          await patchProduct(id, patch);
+          await answerCallback(callback.id, action === "toggleactive" ? (patch.is_active ? "Товар опубликован" : "Товар скрыт") : (patch.featured ? "Добавлено в хиты" : "Убрано из хитов"));
+          await send(chatId, action === "toggleactive"
+            ? `${patch.is_active ? "🟢 Товар опубликован" : "⏸ Товар скрыт"}: ${product.name}`
+            : `${patch.featured ? "⭐ Добавлен в хиты продаж" : "☆ Убран из хитов продаж"}: ${product.name}`);
+        }
       } else if (action === "edit" && id) {
         const product = await getProduct(id);
         if (!product) {
@@ -258,7 +273,7 @@ export default async function handler(req, res) {
     }
     const text = typeof message.text === "string" ? message.text.trim() : "";
     if (text === "/start" || text === "/help") {
-      await send(message.chat.id, "ArzonMarket — админ-бот\n/add — добавить товар\n/cancel — отменить добавление\n/products — последние товары");
+      await send(message.chat.id, "ArzonMarket — админ-бот\n/add — добавить товар\n/products — товары и действия\n/find название — поиск товара\n/stats — сводка каталога\n/setstock ID количество — остаток\n/setprice ID цена — цена\n/show ID /hide ID — публикация товара\n/feature ID /unfeature ID — хиты продаж\n/edit ID — редактировать товар\n/delete ID — удалить товар\n/cancel — отменить действие\n/help — помощь");
       return reply(res, { ok: true });
     }
     if (text === "/done") {
@@ -290,9 +305,94 @@ export default async function handler(req, res) {
       return reply(res, { ok: true });
     }
     if (text === "/products") {
-      const products = await supabase("products?select=name,price,stock,category&order=created_at.desc&limit=10");
-      const summary = products.length ? products.map((p, i) => `${i + 1}. ${p.name} — ${p.price} (остаток: ${p.stock})`).join("\n") : "Товаров пока нет.";
-      await send(message.chat.id, summary);
+      const products = await supabase("products?select=id,name,price,stock,category,is_active,featured&order=created_at.desc&limit=10");
+      if (!products.length) {
+        await send(message.chat.id, "Каталог пока пуст. Добавь первый товар командой /add.");
+      } else {
+        for (const product of products) {
+          const status = product.is_active === false ? "⏸ скрыт" : "🟢 опубликован";
+          const featured = product.featured ? "⭐ хит продаж" : "";
+          await telegram("sendMessage", {
+            chat_id: message.chat.id,
+            text: `📦 ${product.name}\nЦена: ${product.price}\nОстаток: ${product.stock ?? 0}\nКатегория: ${product.category || "—"}\nСтатус: ${status} ${featured}\nID: ${product.id}`,
+            reply_markup: { inline_keyboard: [
+              [{ text: "✏️ Изменить", callback_data: `edit:${product.id}` }, { text: product.is_active === false ? "🟢 Опубликовать" : "⏸ Скрыть", callback_data: `toggleactive:${product.id}` }],
+              [{ text: product.featured ? "☆ Убрать из хитов" : "⭐ В хиты продаж", callback_data: `featured:${product.id}` }, { text: "🗑 Удалить", callback_data: `confirmdelete:${product.id}` }]
+            ] }
+          });
+        }
+      }
+      return reply(res, { ok: true });
+    }
+
+    if (text === "/stats") {
+      const products = await supabase("products?select=id,name,price,stock,is_active,featured&limit=500");
+      const active = products.filter((p) => p.is_active !== false);
+      const hidden = products.length - active.length;
+      const low = active.filter((p) => Number(p.stock || 0) <= 3);
+      const outOfStock = active.filter((p) => Number(p.stock || 0) <= 0);
+      const featured = active.filter((p) => p.featured);
+      const inventoryValue = active.reduce((sum, p) => sum + Number(p.price || 0) * Number(p.stock || 0), 0);
+      const fmt = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 });
+      await send(message.chat.id,
+        `📊 Сводка ArzonMarket\n\nВсего товаров: ${products.length}\nОпубликовано: ${active.length}\nСкрыто: ${hidden}\nХитов продаж: ${featured.length}\nМало на складе (≤3): ${low.length}\nНет в наличии: ${outOfStock.length}\nСумма остатков по розничным ценам: ${fmt.format(inventoryValue)}\n\n${low.length ? "⚠️ Проверь остатки:\n" + low.slice(0, 10).map((p) => `• ${p.name}: ${p.stock ?? 0}`).join("\n") : "✅ Критически низких остатков нет."}`
+      );
+      return reply(res, { ok: true });
+    }
+
+    if (text.toLowerCase().startsWith("/find ")) {
+      const query = text.slice(6).trim().replace(/[,%()]/g, "").slice(0, 60);
+      if (!query) {
+        await send(message.chat.id, "Напиши запрос: /find iPhone");
+        return reply(res, { ok: true });
+      }
+      const safeQuery = encodeURIComponent(query);
+      const products = await supabase(`products?select=id,name,price,stock,category,is_active,featured&or=(name.ilike.*${safeQuery}*,brand.ilike.*${safeQuery}*)&order=created_at.desc&limit=10`);
+      if (!products.length) await send(message.chat.id, `По запросу «${query}» ничего не найдено.`);
+      else {
+        for (const product of products) {
+          await telegram("sendMessage", {
+            chat_id: message.chat.id,
+            text: `🔎 ${product.name}\nЦена: ${product.price}\nОстаток: ${product.stock ?? 0}\nID: ${product.id}`,
+            reply_markup: { inline_keyboard: [
+              [{ text: "✏️ Изменить", callback_data: `edit:${product.id}` }, { text: product.is_active === false ? "🟢 Опубликовать" : "⏸ Скрыть", callback_data: `toggleactive:${product.id}` }],
+              [{ text: product.featured ? "☆ Убрать из хитов" : "⭐ В хиты продаж", callback_data: `featured:${product.id}` }, { text: "🗑 Удалить", callback_data: `confirmdelete:${product.id}` }]
+            ] }
+          });
+        }
+      }
+      return reply(res, { ok: true });
+    }
+
+    const quickMatch = text.match(/^\/(setstock|setprice|show|hide|feature|unfeature)\s+([0-9a-f-]{36})(?:\s+([0-9]+(?:\.[0-9]+)?))?$/i);
+    if (quickMatch) {
+      const [, rawAction, id, rawValue] = quickMatch;
+      const action = rawAction.toLowerCase();
+      const product = await getProduct(id);
+      if (!product) {
+        await send(message.chat.id, "Товар не найден. Открой /products и скопируй ID товара.");
+        return reply(res, { ok: true });
+      }
+      let patch;
+      if (action === "setstock" || action === "setprice") {
+        if (rawValue === undefined) {
+          await send(message.chat.id, action === "setstock" ? "Формат: /setstock ID количество" : "Формат: /setprice ID цена");
+          return reply(res, { ok: true });
+        }
+        const value = Number(rawValue);
+        if (!Number.isFinite(value) || value < 0 || (action === "setstock" && !Number.isInteger(value))) {
+          await send(message.chat.id, action === "setstock" ? "Остаток должен быть целым числом ≥ 0." : "Цена должна быть числом ≥ 0.");
+          return reply(res, { ok: true });
+        }
+        patch = action === "setstock" ? { stock: value } : { price: value };
+      } else if (action === "show" || action === "hide") {
+        patch = { is_active: action === "show" };
+      } else {
+        patch = { featured: action === "feature" };
+      }
+      await patchProduct(id, patch);
+      const labels = { setstock: `Остаток обновлён: ${patch.stock}`, setprice: `Цена обновлена: ${patch.price}`, show: "Товар опубликован на сайте.", hide: "Товар скрыт с сайта.", feature: "Товар добавлен в хиты продаж.", unfeature: "Товар убран из хитов продаж." };
+      await send(message.chat.id, `✅ ${labels[action]}\n${product.name}`);
       return reply(res, { ok: true });
     }
     const commandMatch = text.match(new RegExp("^/(edit|delete)\\s+([0-9a-f-]{36})$", "i"));
