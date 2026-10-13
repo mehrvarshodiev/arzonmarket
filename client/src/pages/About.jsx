@@ -12,7 +12,6 @@ import {
   PackageCheck,
   ShieldCheck,
   Smartphone,
-  Truck,
   HeartHandshake,
 } from 'lucide-react';
 
