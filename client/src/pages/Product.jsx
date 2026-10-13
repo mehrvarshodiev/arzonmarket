@@ -38,6 +38,55 @@ export default function Product() {
   }, [product]);
   useEffect(() => { if (colors.length && !selectedColor) setSelectedColor(colors[0].name); }, [colors, selectedColor]);
 
+  useEffect(() => {
+    if (!product?.name) return undefined;
+
+    const title = `${product.name} — купить в ArzonMarket`;
+    const description = String(product.description || `${product.name} — цена, характеристики и фото в ArzonMarket.`)
+      .replace(/\\s+/g, ' ')
+      .trim()
+      .slice(0, 300);
+
+    document.title = title;
+    const descriptionTag = document.head.querySelector('meta[name="description"]');
+    const socialTitle = document.head.querySelector('meta[property="og:title"]');
+    const socialDescription = document.head.querySelector('meta[property="og:description"]');
+    if (descriptionTag) descriptionTag.content = description;
+    if (socialTitle) socialTitle.content = title;
+    if (socialDescription) socialDescription.content = description;
+
+    const structuredData = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: product.name,
+      description,
+      image: images.filter((image) => image !== fallbackImage),
+      brand: product.brand ? { '@type': 'Brand', name: product.brand } : undefined,
+      category: product.category || undefined,
+      offers: {
+        '@type': 'Offer',
+        url: `https://arzonmarket-omega.vercel.app/product/${encodeURIComponent(product._id || id)}`,
+        priceCurrency: 'RUB',
+        price: Number(product.price),
+        availability: 'https://schema.org/InStock',
+        seller: { '@type': 'Organization', name: 'ArzonMarket' },
+      },
+    };
+
+    let script = document.getElementById('product-jsonld');
+    if (!script) {
+      script = document.createElement('script');
+      script.id = 'product-jsonld';
+      script.type = 'application/ld+json';
+      document.head.appendChild(script);
+    }
+    script.textContent = JSON.stringify(structuredData);
+
+    return () => {
+      document.getElementById('product-jsonld')?.remove();
+    };
+  }, [product, images, id]);
+
   if (error) return <main className="container-shell py-16"><div className="empty-state"><p>{error}</p><p className="mt-4"><Link to="/catalog" className="text-accent underline">Вернуться в каталог</Link></p></div></main>;
   if (!product) return <main className="container-shell py-16 text-slate-400"><div className="skeleton h-80 w-full max-w-2xl" /><p className="mt-5">Загружаем товар…</p></main>;
 
