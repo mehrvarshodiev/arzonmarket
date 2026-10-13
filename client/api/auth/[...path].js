@@ -161,7 +161,10 @@ export default async function handler(req, res) {
   if (req.method === "POST" && route === "telegram/widget") {
     try {
       if (!validateTelegramWidget(req.body)) return reply(res, 401, { message: "Данные Telegram недействительны или устарели. Попробуйте войти снова." });
-      // The short auth_date window limits replay time; this unique signature record prevents replay within that window too.
+      // Keep the replay ledger small, and reject a signed payload if it has already been consumed.
+      await supabase(`telegram_widget_auth_replays?created_at=lt.${encodeURIComponent(new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())}`, {
+        method: "DELETE", headers: { Prefer: "return=minimal" }
+      });
       await supabase("telegram_widget_auth_replays?select=signature_hash", {
         method: "POST", headers: { Prefer: "return=minimal" },
         body: JSON.stringify({
