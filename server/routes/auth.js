@@ -61,6 +61,22 @@ router.post('/verify-code', async (req, res, next) => {
     res.json({ token: issueToken(user), user: { id: user.id, phone: user.phone, name: user.name, role: user.role } });
   } catch (e) { next(e); }
 });
+router.get('/telegram/config', async (_req, res) => {
+  try {
+    const configuredUsername = String(process.env.TELEGRAM_BOT_USERNAME || '').trim().replace(/^@/, '');
+    if (configuredUsername) return res.json({ username: configuredUsername });
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) return res.status(503).json({ message: 'Telegram login is not configured' });
+    const response = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+    const result = await response.json();
+    if (!response.ok || !result?.ok || !result?.result?.username) {
+      return res.status(503).json({ message: 'Telegram login is not available' });
+    }
+    return res.json({ username: result.result.username });
+  } catch {
+    return res.status(503).json({ message: 'Telegram login is not available' });
+  }
+});
 router.post('/telegram', async (req, res, next) => {
   try {
     const data = req.body;
