@@ -81,7 +81,7 @@ export default function Login() {
         if (cancelled.current) break;
         try {
           const { data } = await api.get('/auth/telegram/poll', { params: { id: challenge.challengeId, token: challenge.pollToken } });
-          if (data?.token && data?.user) {
+          if (data?.user && data?.sessionType === 'telegram') {
             await loginTelegram(data);
             nav(location.state?.from?.pathname || '/', { replace: true });
             return;
