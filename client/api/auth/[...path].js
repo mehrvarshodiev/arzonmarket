@@ -90,10 +90,10 @@ function cookieToken(req) {
 }
 function setSessionCookie(res, token, expiresAt) {
   const maxAge = Math.max(0, Math.floor((Date.parse(expiresAt) - Date.now()) / 1000));
-  res.setHeader("Set-Cookie", `am_session=${encodeURIComponent(token)}; HttpOnly; Secure; SameSite=Lax; Path=/api/auth/telegram; Max-Age=${maxAge}`);
+  res.setHeader("Set-Cookie", `am_session=${encodeURIComponent(token)}; HttpOnly; Secure; SameSite=Lax; Path=/api/; Max-Age=${maxAge}`);
 }
 function clearSessionCookie(res) {
-  res.setHeader("Set-Cookie", "am_session=; HttpOnly; Secure; SameSite=Lax; Path=/api/auth/telegram; Max-Age=0");
+  res.setHeader("Set-Cookie", "am_session=; HttpOnly; Secure; SameSite=Lax; Path=/api/; Max-Age=0");
 }
 async function getSession(token) {
   if (!token) return null;
