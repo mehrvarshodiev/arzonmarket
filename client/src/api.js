@@ -4,16 +4,17 @@ const apiUrl = import.meta.env.VITE_API_URL;
 const isDevelopment = import.meta.env.DEV;
 
 const api = axios.create({
-  // In production Vercel serves /api/* as serverless functions.
-  // VITE_API_URL can override this when an external API is intentionally used.
   baseURL: apiUrl || (isDevelopment ? 'http://localhost:5000/api' : '/api'),
   timeout: 12000,
   headers: { Accept: 'application/json' },
+  withCredentials: true,
 });
 
 api.interceptors.request.use((config) => {
+  // Telegram sessions use a server-only HttpOnly cookie. Do not copy their secret into JS headers.
   const token = localStorage.getItem('am_token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  const authType = localStorage.getItem('am_auth_type');
+  if (token && authType !== 'telegram') config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
