@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { House, ShoppingBag, ShoppingCart, UserRound, ShieldCheck, Smartphone, Sun, Moon, Info } from 'lucide-react';
+import { House, ShoppingBag, ShoppingCart, UserRound, ShieldCheck, Smartphone, Sun, Info } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -23,13 +23,12 @@ function Brand({ compact = false }) {
 }
 
 function ThemeSwitcher({ mobile = false }) {
-  const { theme, toggleTheme } = useTheme();
-  const isDark = theme === 'dark';
+  const { toggleTheme } = useTheme();
   return <button type="button" onClick={toggleTheme} className={`theme-switch ${mobile ? 'theme-switch-mobile' : ''}`}
-    aria-label={isDark ? 'Включить светлую тему' : 'Включить тёмную тему'}
-    title={isDark ? 'Светлая тема' : 'Тёмная тема'} aria-pressed={!isDark}>
-    <span className="theme-switch-icon">{isDark ? <Sun size={17}/> : <Moon size={17}/>}</span>
-    {!mobile && <span className="theme-switch-label">{isDark ? 'Светлая' : 'Тёмная'}</span>}
+    aria-label="Сайт использует светлую тему"
+    title="Светлая тема" aria-pressed={true}>
+    <span className="theme-switch-icon"><Sun size={17}/></span>
+    {!mobile && <span className="theme-switch-label">Светлая</span>}
   </button>;
 }
 
