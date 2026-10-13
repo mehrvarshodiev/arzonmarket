@@ -1,26 +1,25 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect } from 'react';
 
 const ThemeContext = createContext(null);
-function getInitialTheme() {
-  try {
-    const saved = localStorage.getItem('am_theme');
-    if (saved === 'light' || saved === 'dark') return saved;
-  } catch {}
-  return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-}
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(getInitialTheme);
+  const theme = 'light';
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.style.colorScheme = theme;
+    document.documentElement.dataset.theme = 'light';
+    document.documentElement.style.colorScheme = 'light';
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', theme === 'dark' ? '#080a0f' : '#f5f7fa');
-    try { localStorage.setItem('am_theme', theme); } catch {}
-  }, [theme]);
+    if (meta) meta.setAttribute('content', '#f5f7fa');
+    try { localStorage.setItem('am_theme', 'light'); } catch {}
+  }, []);
 
-  const toggleTheme = useCallback(() => setTheme(current => current === 'dark' ? 'light' : 'dark'), []);
+  // The storefront is intentionally light-only; keep the existing switcher/API in place.
+  const toggleTheme = useCallback(() => {
+    document.documentElement.dataset.theme = 'light';
+    document.documentElement.style.colorScheme = 'light';
+    try { localStorage.setItem('am_theme', 'light'); } catch {}
+  }, []);
+
   return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>;
 }
 
