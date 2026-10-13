@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /cart
+Disallow: /login
+Sitemap: https://arzonmarket-omega.vercel.app/sitemap.xml
