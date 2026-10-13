@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, ShoppingCart, Minus, Plus } from 'lucide-react';
+import { ShoppingCart, Minus, Plus } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
 const money = n => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(Number(n) || 0);
@@ -9,7 +9,6 @@ const placeholder = 'https://placehold.co/600x600/f4f5f7/8a95a5?text=ArzonMarket
 export default function ProductCard({ product }) {
   const { items = [], add, setQuantity } = useCart();
   const [activeImage, setActiveImage] = useState(0);
-  const [favorite, setFavorite] = useState(false);
   const [selectedColor, setSelectedColor] = useState(null);
   const [touchStart, setTouchStart] = useState(null);
 
@@ -79,23 +78,19 @@ export default function ProductCard({ product }) {
           {gallery.length > 1 && <div className="absolute bottom-2 left-1/2 flex max-w-[60%] -translate-x-1/2 gap-1">{gallery.slice(0, 7).map((src, i) =>
             <span key={src + i} className={`h-1 rounded-full transition-all ${i === activeImage ? 'w-4 bg-[#7c3aed]' : 'w-2 bg-slate-300/90'}`} />)}</div>}
         </Link>
-        <button type="button" onClick={() => setFavorite(value => !value)} aria-label={favorite ? 'Убрать из избранного' : 'В избранное'}
-          className={`absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-white/95 shadow-sm transition hover:scale-105 sm:right-3 sm:top-3 sm:h-9 sm:w-9 ${favorite ? 'text-[#e83d78]' : 'text-slate-500'}`}>
-          <Heart size={17} fill={favorite ? 'currentColor' : 'none'} />
-        </button>
         {gallery.length > 1 && <span className="pointer-events-none absolute right-2 bottom-2 rounded-full bg-white/90 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600 sm:right-3 sm:bottom-3">{activeImage + 1}/{gallery.length}</span>}
       </div>
 
-      <div className="flex flex-1 flex-col px-0.5 pb-0.5 pt-2.5 sm:px-1 sm:pt-3">
+      <div className="flex flex-1 flex-col px-0.5 pb-0.5 pt-1.5 sm:px-1 sm:pt-2">
         <div className="flex items-baseline gap-1.5">
           <span className="text-[15px] font-extrabold leading-tight tracking-tight text-accent sm:text-lg">{money(price)} <span className="text-[10px] font-bold">₽</span></span>
           {discount > 0 && <span className="truncate text-[10px] text-slate-400 line-through sm:text-xs">{money(oldPrice)} ₽</span>}
         </div>
-        <span className="mt-1 truncate text-[10px] font-bold uppercase tracking-wide text-slate-500 sm:text-[11px]">{product.brand || 'ArzonMarket'}</span>
-        <Link to={`/product/${product._id}`} className="product-card-title mt-0.5 line-clamp-2 min-h-[2.5rem] text-[12px] leading-5 sm:min-h-[3rem] sm:text-sm sm:leading-6">{product.name}</Link>
+        <span className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-wide text-slate-500 sm:text-[11px]">{product.brand || 'ArzonMarket'}</span>
+        <Link to={`/product/${product._id}`} className="product-card-title mt-0.5 line-clamp-2 min-h-[2.25rem] text-[12px] leading-[1.125rem] sm:min-h-[2.75rem] sm:text-sm sm:leading-5">{product.name}</Link>
 
 
-        {colors.length > 0 && <div className="mt-2 flex min-h-6 items-center gap-1.5" aria-label="Выбор цвета">
+        {colors.length > 0 && <div className="mt-1.5 flex min-h-5 items-center gap-1.5" aria-label="Выбор цвета">
           {colors.slice(0, 6).map((color, index) => {
             const name = typeof color === 'string' ? color : color.name || `Цвет ${index + 1}`;
             const hex = typeof color === 'object' ? color.hex || color.color : (typeof color === 'string' && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(color) ? color : undefined);
@@ -107,7 +102,7 @@ export default function ProductCard({ product }) {
           <span className="ml-0.5 truncate text-[9px] text-slate-500 sm:text-[10px]">{selectedColor ? (typeof selectedColor === 'string' ? selectedColor : selectedColor.name || 'Выбран цвет') : `${colors.length} цвета`}</span>
         </div>}
 
-        <div className="mt-auto pt-2.5">
+        <div className="mt-auto pt-1.5">
           {quantity > 0 ? <div className="flex h-9 items-center justify-between rounded-xl bg-accent/15 p-1 text-accent sm:h-10">
             <button type="button" onClick={event => adjust(event, -1)} aria-label="Уменьшить количество" className="grid h-7 w-8 place-items-center rounded-lg bg-panel hover:bg-accent/10 sm:h-8"><Minus size={15}/></button>
             <span className="text-sm font-extrabold tabular-nums">{quantity}</span>
