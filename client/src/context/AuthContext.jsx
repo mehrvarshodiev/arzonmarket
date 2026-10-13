@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import api from '../api';
 
 const AuthContext = createContext(null);
@@ -18,64 +18,27 @@ export function AuthProvider({ children }) {
   }, []);
 
   const save = useCallback((data) => {
-    // Telegram credentials stay in an HttpOnly cookie; only phone auth keeps its existing token storage.
     if (data.token) localStorage.setItem('am_token', data.token);
     else localStorage.removeItem('am_token');
     localStorage.setItem('am_user', JSON.stringify(data.user));
-    localStorage.setItem('am_auth_type', data.sessionType || 'phone');
+    localStorage.setItem('am_auth_type', 'phone');
     setToken(data.token || null);
     setUser(data.user);
   }, []);
 
-  useEffect(() => {
-    if (localStorage.getItem('am_auth_type') !== 'telegram') return undefined;
-    let active = true;
-    api.get('/auth/telegram/session')
-      .then(({ data }) => {
-        if (!active) return;
-        if (data?.user) {
-          localStorage.setItem('am_user', JSON.stringify(data.user));
-          setUser(data.user);
-          setToken(null);
-          localStorage.removeItem('am_token');
-        } else clearLocalSession();
-      })
-      .catch(() => { if (active) clearLocalSession(); });
-    return () => { active = false; };
-  }, [clearLocalSession]);
-
   const requestCode = useCallback((phone) => api.post('/auth/request-code', { phone }), []);
   const verifyCode = useCallback(async (phone, code, name) => {
     const { data } = await api.post('/auth/verify-code', { phone, code, name });
-    save({ ...data, sessionType: 'phone' });
+    save(data);
     return data;
   }, [save]);
 
-  const loginTelegram = useCallback(async (data) => {
-    if (!data?.user) throw new Error('Ответ авторизации некорректен.');
-    save({ ...data, sessionType: 'telegram' });
-    return data;
-  }, [save]);
-
-  const logout = useCallback(async () => {
-    const currentToken = token || localStorage.getItem('am_token');
-    try {
-      if (localStorage.getItem('am_auth_type') === 'telegram') {
-        await api.post('/auth/telegram/logout', {}, currentToken
-          ? { headers: { Authorization: `Bearer ${currentToken}` } }
-          : undefined);
-      }
-    } catch {
-      // Always clear the UI; server-side sessions have a seven-day expiry as a fallback.
-    } finally {
-      clearLocalSession();
-    }
-  }, [token, clearLocalSession]);
+  const logout = useCallback(() => clearLocalSession(), [clearLocalSession]);
 
   const value = useMemo(() => ({
-    token, user, isAuthenticated: Boolean(user), isAdmin: user?.role === 'admin',
-    requestCode, verifyCode, loginTelegram, logout
-  }), [token, user, requestCode, verifyCode, loginTelegram, logout]);
+    token, user, isAuthenticated: Boolean(token), isAdmin: user?.role === 'admin',
+    requestCode, verifyCode, logout
+  }), [token, user, requestCode, verifyCode, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
