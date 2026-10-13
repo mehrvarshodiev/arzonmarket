@@ -15,8 +15,43 @@ export default function Login() {
   const [waitingForTelegram, setWaitingForTelegram] = useState(false);
   const [telegramLink, setTelegramLink] = useState('');
   const cancelled = useRef(false);
+  const widgetContainer = useRef(null);
+  const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
 
   useEffect(() => () => { cancelled.current = true; }, []);
+
+  const finishTelegramLogin = useCallback(async (telegramData) => {
+    setBusy(true);
+    setError('');
+    try {
+      const { data } = await api.post('/auth/telegram/widget', telegramData);
+      await loginTelegram(data);
+      nav(location.state?.from?.pathname || '/', { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Не удалось войти через Telegram. Попробуйте ещё раз.');
+    } finally {
+      setBusy(false);
+    }
+  }, [loginTelegram, nav, location.state]);
+
+  useEffect(() => {
+    if (isAuthenticated || !botUsername || !widgetContainer.current) return undefined;
+    window.onTelegramAuth = (telegramData) => { void finishTelegramLogin(telegramData); };
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = 'https://telegram.org/js/telegram-widget.js?22';
+    script.setAttribute('data-telegram-login', botUsername);
+    script.setAttribute('data-size', 'large');
+    script.setAttribute('data-userpic', 'false');
+    script.setAttribute('data-lang', 'ru');
+    script.setAttribute('data-radius', '12');
+    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+    widgetContainer.current.appendChild(script);
+    return () => {
+      script.remove();
+      delete window.onTelegramAuth;
+    };
+  }, [botUsername, finishTelegramLogin, isAuthenticated]);
 
   const startTelegramLogin = useCallback(async () => {
     setBusy(true);
@@ -61,22 +96,38 @@ export default function Login() {
         <h1 className="mt-5 text-3xl font-black text-white">{isAuthenticated ? 'Ваш профиль' : 'Войти в ArzonMarket'}</h1>
         {isAuthenticated ? (
           <>
-            <p className="mt-3 text-slate-400">{user?.name || (user?.telegramId ? 'Аккаунт Telegram подключён' : 'Вы вошли в аккаунт.')}</p>
-            {user?.telegramId && <p className="mt-1 text-sm text-slate-500">Telegram ID: {user.telegramId}</p>}
+            <div className="mt-5 flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+              {user?.photoUrl ? (
+                <img src={user.photoUrl} alt="Аватар Telegram" referrerPolicy="no-referrer" className="h-16 w-16 rounded-full object-cover" />
+              ) : (
+                <span className="grid h-16 w-16 place-items-center rounded-full bg-white/10 text-slate-300"><UserRound size={26} /></span>
+              )}
+              <div className="min-w-0">
+                <p className="truncate font-bold text-white">{user?.name || 'Покупатель'}</p>
+                {user?.username && <p className="truncate text-sm text-slate-400">@{user.username}</p>}
+                {user?.telegramId && <p className="mt-1 text-xs text-slate-500">Telegram ID: {user.telegramId}</p>}
+              </div>
+            </div>
             <Link to="/catalog" className="btn-primary mt-5 w-full"><ShoppingBag size={17} /> Перейти в каталог</Link>
             <Link to="/cart" className="btn-secondary mt-3 w-full"><ShoppingBag size={17} /> Моя корзина</Link>
             {user?.role === 'admin' && <Link to="/admin" className="btn-secondary mt-3 w-full"><ShieldCheck size={17} /> Панель администратора</Link>}
-            <button onClick={() => { logout(); setError(''); }} className="mt-4 flex w-full items-center justify-center gap-2 py-2 text-sm text-slate-500 transition hover:text-red-300"><LogOut size={16} /> Выйти</button>
+            <button onClick={() => { void logout(); setError(''); }} className="mt-4 flex w-full items-center justify-center gap-2 py-2 text-sm text-slate-500 transition hover:text-red-300"><LogOut size={16} /> Выйти</button>
           </>
         ) : (
           <div className="mt-6 space-y-4">
-            <p className="text-sm leading-6 text-slate-400">Войдите через существующего Telegram-бота ArzonMarket. В боте нажмите Start — сайт проверит подтверждение и создаст профиль.</p>
+            <p className="text-sm leading-6 text-slate-400">Войдите через Telegram. После подтверждения сайт проверит подпись данных на сервере и создаст профиль покупателя.</p>
             {error && <p role="alert" className="rounded-xl bg-red-400/10 p-3 text-sm text-red-400">{error}</p>}
-            <button type="button" disabled={busy} onClick={startTelegramLogin} className="telegram-login-button w-full">
-              {busy ? <LoaderCircle size={18} className="animate-spin" /> : <Send size={18} />}
-              {busy ? 'Ожидаем подтверждение в Telegram…' : 'Войти через Telegram'}
-            </button>
+            {botUsername ? (
+              <div className="flex min-h-12 justify-center" ref={widgetContainer} aria-label="Войти через Telegram" />
+            ) : (
+              <button type="button" disabled={busy} onClick={startTelegramLogin} className="telegram-login-button w-full">
+                {busy ? <LoaderCircle size={18} className="animate-spin" /> : <Send size={18} />}
+                {busy ? 'Ожидаем подтверждение в Telegram…' : 'Войти через Telegram'}
+              </button>
+            )}
+            {busy && botUsername && <p className="text-center text-sm text-slate-400"><LoaderCircle size={15} className="mr-2 inline animate-spin" /> Проверяем подпись Telegram…</p>}
             {waitingForTelegram && <div className="space-y-2 rounded-xl bg-white/5 p-3 text-center"><p className="flex items-center justify-center gap-2 text-sm text-slate-400"><CheckCircle2 size={16} /> Ссылка действует 5 минут. Откройте бот и нажмите Start.</p><a href={telegramLink} target="_blank" rel="noreferrer" className="btn-secondary w-full"><Send size={17} /> Открыть Telegram</a></div>}
+            {!botUsername && <p className="text-center text-xs leading-5 text-slate-500">Если виджет не настроен, используется существующий безопасный вход через Telegram-бота.</p>}
             <p className="text-center text-xs leading-5 text-slate-500">Роль определяется сервером. Покупатель получает роль customer; роль admin выдаётся только Telegram ID из TELEGRAM_ADMIN_IDS.</p>
           </div>
         )}
