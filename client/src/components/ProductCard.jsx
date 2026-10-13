@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, ShoppingCart, Minus, Plus, Star } from 'lucide-react';
+import { Heart, ShoppingCart, Minus, Plus } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
-const money = n => new Intl.NumberFormat('ru-RU').format(Number(n) || 0);
+const somToRub = n => (Number(n) || 0) * 9.09;
+const money = n => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(somToRub(n));
 const placeholder = 'https://placehold.co/600x600/f4f5f7/8a95a5?text=ArzonMarket';
 
 export default function ProductCard({ product }) {
@@ -64,7 +65,7 @@ export default function ProductCard({ product }) {
   };
 
   return (
-    <article className="group relative flex min-w-0 flex-col rounded-[18px] bg-white p-2 text-slate-900 shadow-[0_2px_12px_rgba(15,23,42,.06)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(15,23,42,.13)] sm:rounded-[22px] sm:p-3">
+    <article className="product-card group relative flex min-w-0 flex-col rounded-[18px] p-2 shadow-[0_2px_12px_rgba(15,23,42,.06)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(15,23,42,.13)] sm:rounded-[22px] sm:p-3">
       <div className="relative">
         <Link to={`/product/${product._id}`} aria-label={`Открыть ${product.name}`}
           onMouseMove={handleHover}
@@ -88,17 +89,12 @@ export default function ProductCard({ product }) {
 
       <div className="flex flex-1 flex-col px-0.5 pb-0.5 pt-2.5 sm:px-1 sm:pt-3">
         <div className="flex items-baseline gap-1.5">
-          <span className="text-[15px] font-extrabold leading-tight tracking-tight text-[#6d28d9] sm:text-lg">{money(price)} <span className="text-[10px] font-bold">сум</span></span>
-          {discount > 0 && <span className="truncate text-[10px] text-slate-400 line-through sm:text-xs">{money(oldPrice)}</span>}
+          <span className="text-[15px] font-extrabold leading-tight tracking-tight text-accent sm:text-lg">{money(price)} <span className="text-[10px] font-bold">₽</span></span>
+          {discount > 0 && <span className="truncate text-[10px] text-slate-400 line-through sm:text-xs">{money(oldPrice)} ₽</span>}
         </div>
         <span className="mt-1 truncate text-[10px] font-bold uppercase tracking-wide text-slate-500 sm:text-[11px]">{product.brand || 'ArzonMarket'}</span>
-        <Link to={`/product/${product._id}`} className="mt-0.5 line-clamp-2 min-h-[2.5rem] text-[12px] leading-5 text-slate-800 hover:text-[#6d28d9] sm:min-h-[3rem] sm:text-sm sm:leading-6">{product.name}</Link>
+        <Link to={`/product/${product._id}`} className="product-card-title mt-0.5 line-clamp-2 min-h-[2.5rem] text-[12px] leading-5 sm:min-h-[3rem] sm:text-sm sm:leading-6">{product.name}</Link>
 
-        <div className="mt-1.5 flex items-center gap-1 text-[10px] text-slate-500 sm:text-xs">
-          <Star size={12} fill="#f5b82e" stroke="#f5b82e" />
-          <span className="font-bold text-slate-700">{product.rating != null ? Number(product.rating).toFixed(1) : '—'}</span>
-          {product.reviewCount != null && <span>· {money(product.reviewCount)} оценок</span>}
-        </div>
 
         {colors.length > 0 && <div className="mt-2 flex min-h-6 items-center gap-1.5" aria-label="Выбор цвета">
           {colors.slice(0, 6).map((color, index) => {
@@ -113,11 +109,11 @@ export default function ProductCard({ product }) {
         </div>}
 
         <div className="mt-auto pt-2.5">
-          {quantity > 0 ? <div className="flex h-9 items-center justify-between rounded-xl bg-[#f1eafe] p-1 text-[#6d28d9] sm:h-10">
-            <button type="button" onClick={event => adjust(event, -1)} aria-label="Уменьшить количество" className="grid h-7 w-8 place-items-center rounded-lg bg-white hover:bg-purple-50 sm:h-8"><Minus size={15}/></button>
+          {quantity > 0 ? <div className="flex h-9 items-center justify-between rounded-xl bg-accent/15 p-1 text-accent sm:h-10">
+            <button type="button" onClick={event => adjust(event, -1)} aria-label="Уменьшить количество" className="grid h-7 w-8 place-items-center rounded-lg bg-panel hover:bg-accent/10 sm:h-8"><Minus size={15}/></button>
             <span className="text-sm font-extrabold tabular-nums">{quantity}</span>
             <button type="button" onClick={event => adjust(event, 1)} aria-label="Увеличить количество" className="grid h-7 w-8 place-items-center rounded-lg bg-white hover:bg-purple-50 sm:h-8"><Plus size={15}/></button>
-          </div> : <button type="button" onClick={addOne} className="flex h-9 w-full items-center justify-center gap-2 rounded-xl bg-[#7c3aed] text-xs font-bold text-white transition hover:bg-[#6d28d9] active:scale-[.98] sm:h-10 sm:text-sm">
+          </div> : <button type="button" onClick={addOne} className="flex h-9 w-full items-center justify-center gap-2 rounded-xl bg-accent text-xs font-extrabold text-[#10140b] transition hover:bg-[#c8ff86] active:scale-[.98] sm:h-10 sm:text-sm">
             <ShoppingCart size={15}/> В корзину
           </button>}
         </div>
