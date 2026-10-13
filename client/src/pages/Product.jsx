@@ -101,7 +101,7 @@ export default function Product() {
     <Link to="/catalog" className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-slate-400 transition hover:border-accent/40 hover:text-accent"><ArrowLeft size={16}/> Каталог</Link>
     <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,.95fr)] lg:gap-12">
       <section className="min-w-0">
-        <div className="product-gallery relative overflow-hidden rounded-[28px] border border-white/10 bg-[#f5f6f8] p-3 sm:p-6">
+        <div className="product-gallery relative aspect-square overflow-hidden rounded-[28px] border border-white/10 bg-[#f5f6f8] p-0">
           {product.oldPrice > product.price && <span className="absolute left-5 top-5 z-10 rounded-full bg-[#b7f36b] px-3 py-1.5 text-xs font-black text-[#10140b]">−{Math.round((1-product.price/product.oldPrice)*100)}%</span>}
           <div className="grid min-h-[320px] place-items-center sm:min-h-[480px]">
             <img key={images[activeImage]} className="max-h-[540px] w-full object-contain transition-opacity duration-300" src={images[activeImage] || fallbackImage} alt={product.name} onError={e => { e.currentTarget.src = fallbackImage; }} />
