@@ -82,6 +82,19 @@ function bearerToken(req) {
   const match = header.match(/^Bearer\\s+([A-Za-z0-9_-]{40,100})$/i);
   return match?.[1] || "";
 }
+function cookieToken(req) {
+  const cookieHeader = String(req.headers?.cookie || "");
+  const entry = cookieHeader.split(";").map(value => value.trim()).find(value => value.startsWith("am_session="));
+  if (!entry) return "";
+  try { return decodeURIComponent(entry.slice("am_session=".length)); } catch { return ""; }
+}
+function setSessionCookie(res, token, expiresAt) {
+  const maxAge = Math.max(0, Math.floor((Date.parse(expiresAt) - Date.now()) / 1000));
+  res.setHeader("Set-Cookie", `am_session=${encodeURIComponent(token)}; HttpOnly; Secure; SameSite=Lax; Path=/api/auth/telegram; Max-Age=${maxAge}`);
+}
+function clearSessionCookie(res) {
+  res.setHeader("Set-Cookie", "am_session=; HttpOnly; Secure; SameSite=Lax; Path=/api/auth/telegram; Max-Age=0");
+}
 async function getSession(token) {
   if (!token) return null;
   const rows = await supabase(
@@ -140,7 +153,8 @@ export default async function handler(req, res) {
       if (!validateTelegramWidget(req.body)) return reply(res, 401, { message: "Данные Telegram недействительны или устарели. Попробуйте войти снова." });
       const user = await upsertTelegramUser(req.body);
       const session = await createSession(user);
-      return reply(res, 200, { token: session.token, expiresAt: session.expiresAt, sessionType: "telegram", user: userView(user) });
+      setSessionCookie(res, session.token, session.expiresAt);
+      return reply(res, 200, { expiresAt: session.expiresAt, sessionType: "telegram", user: userView(user) });
     } catch (error) {
       console.error("Telegram widget login failed:", error.message);
       if (error.status === 401 || error.status === 403) return reply(res, 503, { message: "Нет доступа к базе покупателей. Проверьте настройки Supabase." });
@@ -150,11 +164,12 @@ export default async function handler(req, res) {
 
   if (req.method === "POST" && route === "telegram/logout") {
     try {
-      const token = bearerToken(req);
+      const token = cookieToken(req) || bearerToken(req);
       if (token) await supabase(`auth_sessions?token_hash=eq.${hashToken(token)}&revoked_at=is.null`, {
         method: "PATCH", headers: { Prefer: "return=minimal" },
         body: JSON.stringify({ revoked_at: new Date().toISOString() })
       });
+      clearSessionCookie(res);
       return reply(res, 200, { ok: true });
     } catch (error) {
       console.error("Telegram logout failed:", error.message);
@@ -164,7 +179,7 @@ export default async function handler(req, res) {
 
   if (req.method === "GET" && route === "telegram/session") {
     try {
-      const current = await getSession(bearerToken(req));
+      const current = await getSession(cookieToken(req) || bearerToken(req));
       if (!current) return reply(res, 401, { message: "Сессия завершена. Войдите снова." });
       return reply(res, 200, { user: userView(current.user), expiresAt: current.session.expires_at, sessionType: "telegram" });
     } catch (error) {
@@ -229,7 +244,8 @@ export default async function handler(req, res) {
         body: JSON.stringify({ status: "consumed", consumed_at: new Date().toISOString() })
       });
       const session = await createSession(user);
-      return reply(res, 200, { token: session.token, expiresAt: session.expiresAt, sessionType: "telegram", user: userView(user) });
+      setSessionCookie(res, session.token, session.expiresAt);
+      return reply(res, 200, { expiresAt: session.expiresAt, sessionType: "telegram", user: userView(user) });
     } catch (error) {
       console.error("Telegram login poll failed:", error.message);
       if (error.status === 401 || error.status === 403) return reply(res, 503, { message: "Нет доступа к базе покупателей. Проверьте настройки Supabase." });
