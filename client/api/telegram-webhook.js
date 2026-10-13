@@ -40,7 +40,7 @@ async function answerCallback(callbackQueryId, text) {
   return telegram("answerCallbackQuery", { callback_query_id: callbackQueryId, text });
 }
 async function getProduct(id) {
-  const rows = await supabase(`products?id=eq.${encodeURIComponent(id)}&select=id,name,brand,category,price,stock,description,images,is_active&limit=1`);
+  const rows = await supabase(`products?id=eq.${encodeURIComponent(id)}&select=id,name,brand,category,price,stock,description,images,is_active,featured&limit=1`);
   return rows?.[0] || null;
 }
 async function patchProduct(id, patch) {
