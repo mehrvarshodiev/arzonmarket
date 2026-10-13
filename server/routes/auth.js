@@ -18,16 +18,6 @@ function issueToken(user) {
   if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is required');
   return jwt.sign({ sub: user.id, role: user.role, name: user.name }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
 }
-function validTelegramPayload(data, botToken) {
-  if (!data || !data.hash || !botToken) return false;
-  const { hash, ...fields } = data;
-  const authDate = Number(fields.auth_date);
-  if (!authDate || Math.abs(Date.now() / 1000 - authDate) > 86400) return false;
-  const checkString = Object.keys(fields).sort().map(key => `${key}=${fields[key]}`).join('\n');
-  const secretKey = crypto.createHash('sha256').update(botToken).digest();
-  const expected = crypto.createHmac('sha256', secretKey).update(checkString).digest('hex');
-  try { return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(String(hash), 'hex')); } catch { return false; }
-}
 router.post('/request-code', (req, res) => {
   const phone = normalizePhone(req.body.phone);
   if (!isValidE164Phone(phone)) return res.status(400).json({ message: 'Введите корректный номер телефона в международном формате E.164' });
@@ -59,42 +49,6 @@ router.post('/verify-code', async (req, res, next) => {
       user = data;
     }
     res.json({ token: issueToken(user), user: { id: user.id, phone: user.phone, name: user.name, role: user.role } });
-  } catch (e) { next(e); }
-});
-router.get('/telegram/config', async (_req, res) => {
-  try {
-    const configuredUsername = String(process.env.TELEGRAM_BOT_USERNAME || '').trim().replace(/^@/, '');
-    if (configuredUsername) return res.json({ username: configuredUsername });
-    const token = process.env.TELEGRAM_BOT_TOKEN;
-    if (!token) return res.status(503).json({ message: 'Telegram login is not configured' });
-    const response = await fetch(`https://api.telegram.org/bot${token}/getMe`);
-    const result = await response.json();
-    if (!response.ok || !result?.ok || !result?.result?.username) {
-      return res.status(503).json({ message: 'Telegram login is not available' });
-    }
-    return res.json({ username: result.result.username });
-  } catch {
-    return res.status(503).json({ message: 'Telegram login is not available' });
-  }
-});
-router.post('/telegram', async (req, res, next) => {
-  try {
-    const data = req.body;
-    if (!validTelegramPayload(data, process.env.TELEGRAM_BOT_TOKEN)) return res.status(401).json({ message: 'Telegram authentication data is invalid or expired' });
-    const telegramId = String(data.id), name = [data.first_name, data.last_name].filter(Boolean).join(' ').slice(0, 120) || 'Telegram user';
-    const { data: existing, error: lookupError } = await supabase.from('users').select('*').eq('telegram_id', telegramId).maybeSingle();
-    if (lookupError) throw lookupError;
-    let user = existing;
-    if (user) {
-      const { data: updated, error } = await supabase.from('users').update({ name }).eq('id', user.id).select('*').single();
-      if (error) throw error;
-      user = updated;
-    } else {
-      const { data: created, error } = await supabase.from('users').insert({ telegram_id: telegramId, name }).select('*').single();
-      if (error) throw error;
-      user = created;
-    }
-    res.json({ token: issueToken(user), user: { id: user.id, name: user.name, role: user.role, telegramId: user.telegram_id } });
   } catch (e) { next(e); }
 });
 export default router;
