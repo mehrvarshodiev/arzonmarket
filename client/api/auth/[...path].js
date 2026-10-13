@@ -148,6 +148,16 @@ export default async function handler(req, res) {
     : new URL(req.url || "/", "https://arzonmarket.local").pathname.split("/").filter(Boolean).slice(2);
   const route = segments.join("/").replace(/\\/$/, "");
 
+  if (req.method === "GET" && route === "telegram/config") {
+    try {
+      const bot = await getAdminBotInfo();
+      return reply(res, 200, { username: bot.username });
+    } catch (error) {
+      console.error("Telegram login config failed:", error.message);
+      return reply(res, 503, { message: "Telegram-вход временно недоступен." });
+    }
+  }
+
   if (req.method === "POST" && route === "telegram/widget") {
     try {
       if (!validateTelegramWidget(req.body)) return reply(res, 401, { message: "Данные Telegram недействительны или устарели. Попробуйте войти снова." });
